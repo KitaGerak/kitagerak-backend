@@ -1,0 +1,28 @@
+{
+    "openapi": "3.1.0",
+    "info": {
+        "title": "KitaGerak RESTful API",
+        "version": "1.0",
+        "description": "OpenAPI docs for kitagerak RESTful API",
+        "termsOfService": "https://www.example.com",
+        "contact": {
+            "name": "Kenneth Manuel Lieyanto",
+            "email": "kennethlieyanto99@gmail.com",
+            "url": "https://github.com/kennethmanuel"
+        },
+        "license": {
+            "name": "APACHE 2.0",
+            "url": "https://www.apache.org/licenses/LICENSE-2.0.txt"
+        }
+    },
+    "servers": [
+        {
+            "url": "http://localhost:8000"
+        }
+    ],
+    "externalDocs": {
+        "description": "More info on kitagerak API",
+        "url": "https://github.com/kitagerak"
+    },
+    "paths": {}
+}
