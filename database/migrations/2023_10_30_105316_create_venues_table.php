@@ -19,7 +19,6 @@ return new class extends Migration
             /* $table->string('rating'); // TODO: tipe data? isinya apa? */
             $table->string('image_url');
             $table->timestamps();
-            $table->foreignId('venue_owner_id')->constrained();
         });
     }
 

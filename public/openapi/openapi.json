@@ -1,28 +1,73 @@
 {
-    "openapi": "3.1.0",
+    "openapi": "3.0.1",
     "info": {
-        "title": "KitaGerak RESTful API",
-        "version": "1.0",
-        "description": "OpenAPI docs for kitagerak RESTful API",
-        "termsOfService": "https://www.example.com",
-        "contact": {
-            "name": "Kenneth Manuel Lieyanto",
-            "email": "kennethlieyanto99@gmail.com",
-            "url": "https://github.com/kennethmanuel"
-        },
-        "license": {
-            "name": "APACHE 2.0",
-            "url": "https://www.apache.org/licenses/LICENSE-2.0.txt"
-        }
+        "title": "Kitagerak API",
+        "summary": "Kitagerak API",
+        "version": "1.0"
     },
     "servers": [
         {
-            "url": "http://localhost:8000"
+            "url": "http://localhost"
         }
     ],
-    "externalDocs": {
-        "description": "More info on kitagerak API",
-        "url": "https://github.com/kitagerak"
-    },
-    "paths": {}
+    "paths": {
+        "/api/venue_owners": {
+            "post": {
+                "summary": "Register new venue owner",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "name",
+                                    "email",
+                                    "phone_number",
+                                    "password",
+                                    "national_id_number"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "email": {
+                                        "type": "string"
+                                    },
+                                    "phone_number": {
+                                        "type": "string"
+                                    },
+                                    "password": {
+                                        "type": "string"
+                                    },
+                                    "national_id_number": {
+                                        "type": "string"
+                                    }
+                                }
+                            },
+                            "examples": {
+                                "Successful register": {
+                                    "value": {
+                                        "name": "John Doe",
+                                        "email": "johndoe@johndoe.com",
+                                        "phone_number": "08123456789",
+                                        "password": "secretjohndoe",
+                                        "national_id_number": "1050245708900001"
+                                    }
+                                },
+                                "Email already exist": {
+                                    "value": {
+                                        "name": "John Wick",
+                                        "email": "johndoe@johndoe.com",
+                                        "phone_number": "0811111111",
+                                        "password": "secretjohnwick",
+                                        "national_id_number": "1111111111111111"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }

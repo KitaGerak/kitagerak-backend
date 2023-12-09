@@ -13,11 +13,12 @@ return new class extends Migration
     {
         Schema::create('venue_owners', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
-            $table->string('email')->unique();
-            $table->string('phone_number')->unique();
-            $table->string('password');
-            $table->string('national_id_number')->unique();
+            $table->string('name', 100)->nullable(false);
+            $table->string('email', 100)->unique('venue_owners_email_unique')->nullable(false);
+            $table->string('phone_number', 20)->unique('venue_owners_phone_number_unique')->nullable(false);
+            $table->string('password', 100)->nullable(false);
+            $table->string('national_id_number', 20)->unique('venue_owners_national_id_number_unique')->nullable(false);
+            $table->string('token', 100)->unique('venue_owners_token_unique')->nullable();
             $table->timestamps();
         });
     }
