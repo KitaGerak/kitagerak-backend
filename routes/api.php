@@ -20,3 +20,4 @@ use Illuminate\Support\Facades\Route;
 // });
 
 Route::post('/venue_owners', [VenueOwnerController::class, 'register']);
+Route::post('/venue_owners/login', [VenueOwnerController::class, 'login']);

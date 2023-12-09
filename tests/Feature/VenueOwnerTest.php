@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use Database\Seeders\VenueOwnerSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
 use Tests\TestCase;
@@ -33,17 +34,38 @@ class VenueOwnerTest extends TestCase
             ]);
     }
 
-    public function testEmailAlreadyExist(): void
+    public function testRegisterEmailAlreadyExist(): void
     {
         // TODO:
     }
 
-    public function testPhoneNumberAlreadyExist(): void
+    public function testRegisterPhoneNumberAlreadyExist(): void
     {
         // TODO:
     }
 
-    public function testNationalIDNumberAlreadyExist(): void
+    public function testRegisterNationalIDNumberAlreadyExist(): void
+    {
+        // TODO:
+    }
+
+    public function testLoginSuccess(): void
+    {
+        $this->seed([VenueOwnerSeeder::class]);
+        $response = $this->post('/api/venue_owners/login', [
+            'email' => 'johnwick@wickjohn.com',
+            'password' => 'wickjohn1234'
+        ]);
+
+        $response->assertStatus(200);
+    }
+
+    public function testLoginFailEmailAlreadyExist(): void
+    {
+        // TODO:
+    }
+
+    public function testLoginFailPasswordWrong(): void
     {
         // TODO:
     }

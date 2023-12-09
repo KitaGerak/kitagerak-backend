@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\VenueOwnerLoginRequest;
 use App\Http\Requests\VenueOwnerRegisterRequest;
 use App\Http\Resources\VenueOwnerResource;
 use App\Models\VenueOwner;
@@ -9,6 +10,7 @@ use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class VenueOwnerController extends Controller
 {
@@ -49,11 +51,28 @@ class VenueOwnerController extends Controller
         $venue_owner = new VenueOwner($data);
         $venue_owner->password = Hash::make($data['password']);
         $venue_owner->save();
-
         return (new VenueOwnerResource($venue_owner))->response()->setStatusCode(201);
     }
 
-    public function login()
+    public function login(VenueOwnerLoginRequest $request): VenueOwnerResource
     {
+        $data = $request->validated();
+
+        $venue_owner = VenueOwner::where('email', $data['email'])->first();
+
+        if (!$venue_owner || !Hash::check($data['password'], $venue_owner->password)) {
+            throw new HttpResponseException(response([
+                "errros" => [
+                    "message" => [
+                        "email or password wrong"
+                    ]
+                ]
+            ], 401));
+        }
+
+        $venue_owner->token = Str::uuid()->toString();
+        $venue_owner->save();
+
+        return new VenueOwnerResource($venue_owner);
     }
 }
