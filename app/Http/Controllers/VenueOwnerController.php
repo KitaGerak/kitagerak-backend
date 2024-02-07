@@ -54,25 +54,33 @@ class VenueOwnerController extends Controller
         return (new VenueOwnerResource($venue_owner))->response()->setStatusCode(201);
     }
 
-    public function login(VenueOwnerLoginRequest $request): VenueOwnerResource
+    public function login(VenueOwnerLoginRequest $request)
     {
         $data = $request->validated();
 
         $venue_owner = VenueOwner::where('email', $data['email'])->first();
 
         if (!$venue_owner || !Hash::check($data['password'], $venue_owner->password)) {
-            throw new HttpResponseException(response([
-                "errros" => [
-                    "message" => [
-                        "email or password wrong"
-                    ]
-                ]
-            ], 401));
+            // throw new HttpResponseException(response([
+            //     "errros" => [
+            //         "message" => [
+            //             "email or password wrong"
+            //         ]
+            //     ]
+            // ], 401));
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid email or password!',
+            ], 401);
         }
 
         $venue_owner->token = Str::uuid()->toString();
         $venue_owner->save();
 
-        return new VenueOwnerResource($venue_owner);
+        return response()->json([
+            'success' => true,
+            'token' => $venue_owner->token,
+            'venue_owner' => $venue_owner->email,
+        ]);
     }
 }

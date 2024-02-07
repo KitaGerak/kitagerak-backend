@@ -26,7 +26,7 @@ class VenueOwnerSeeder extends Seeder
             'name' => 'test',
             'email' => 'test@test.com',
             'phone_number' => '11111111111',
-            'password' => 'test',
+            'password' => Hash::make('test'),
             'national_id_number' => '3333333333333333'
         ]);
     }
