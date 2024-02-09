@@ -13,6 +13,17 @@ return new class extends Migration
     {
         Schema::create('transactions', function (Blueprint $table) {
             $table->id();
+            $table->string('external_id')->nullable();
+            $table->string('order_id');
+            $table->unsignedBigInteger('schedule_id');
+            $table->unsignedBigInteger('court_id');
+            
+            $table->string('reason')->nullable();
+            $table->unsignedBigInteger('transaction_status_id');
+            
+            $table->foreign('court_id')->references('id')->on('courts');
+            $table->foreign('schedule_id')->references('id')->on('schedules');
+            $table->foreign('transaction_status_id')->references('id')->on('transaction_statuses');
             $table->timestamps();
         });
     }

@@ -14,10 +14,15 @@ return new class extends Migration
         Schema::create('courts', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('type');
             $table->string('description');
+            $table->unsignedBigInteger('venue_id');
             $table->string('floor_type');
+            $table->unsignedBigInteger('court_type_id')->nullable();
+            $table->string('alternate_type')->nullable();
             $table->integer('price');
+            $table->foreign('venue_id')->references('id')->on('venues');
+            $table->foreign('court_type_id')->references('id')->on('court_types');
+            $table->string('status')->default(1);
             $table->timestamps();
         });
     }

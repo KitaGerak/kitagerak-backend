@@ -1,5 +1,8 @@
 <?php
 
+use App\Http\Controllers\V1\AuthController;
+use App\Http\Controllers\V1\CourtController;
+use App\Http\Controllers\V1\VenueController;
 use App\Http\Controllers\VenueOwnerController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -21,3 +24,36 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('/venue_owners', [VenueOwnerController::class, 'register']);
 Route::post('/venue_owners/login', [VenueOwnerController::class, 'login']);
+
+Route::group(['prefix' => 'v1'], function() {
+
+    Route::group(['prefix' => 'venues'], function() {
+        Route::get('/', [VenueController::class, "index"]);
+        Route::get('/{venue:id}', [VenueController::class, "show"]);
+    });
+
+    Route::group(['prefix' => 'courts'], function() {
+        // Route::get('/', [CourtController::class, "index"]);
+        Route::get('/{court:id}', [CourtController::class, "show"]);
+    });
+
+    Route::group(['middleware' => 'auth:sanctum'], function() {
+
+        Route::group(['prefix' => 'venues'], function() {            
+            Route::post('/', [VenueController::class, "store"]);
+            Route::put('/{venue:id}', [VenueController::class, "update"]);
+            Route::patch('/{venue:id}', [VenueController::class, "update"]);
+            Route::post('/bulk', [VenueController::class, "bulkStore"]);
+        });
+
+        Route::group(['prefix' => 'courts'], function() {
+            Route::post('/', [CourtController::class, "store"]);
+            Route::put('/{court:id}', [CourtController::class, "show"]);
+            Route::patch('/{court:id}', [CourtController::class, "show"]);
+        });
+
+    });
+
+    Route::post('/register', [AuthController::class, "register"]);
+    Route::post('/login', [AuthController::class, "login"]);
+});
