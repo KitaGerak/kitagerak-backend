@@ -4,7 +4,7 @@ namespace App\Http\Resources\V1;
 
 use Illuminate\Http\Resources\Json\JsonResource;
 
-class CourtImageResource extends JsonResource
+class ScheduleResource extends JsonResource
 {
     /**
      * Transform the resource into an array.
@@ -14,10 +14,14 @@ class CourtImageResource extends JsonResource
      */
     public function toArray($request)
     {
-        // return parent::toArray($request);
         return [
             'id' => $this->id,
-            'url' => str_replace("private", "http://kitagerak-backend.test", $this->url),
+            // 'courtId' => $this->court_id,
+            'date' => $this->date,
+            'timeStart' => $this->time_start,
+            'timeFinish' => $this->time_finish,
+            'interval' => $this->interval,
+            'availability' => $this->availability,
             'status' => $this->status,
         ];
     }

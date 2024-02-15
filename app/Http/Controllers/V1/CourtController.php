@@ -4,7 +4,7 @@ namespace App\Http\Controllers\V1;
 
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\UpdateCourtRequest;
+use App\Http\Requests\V1\UpdateCourtRequest;
 use App\Http\Requests\V1\StoreCourtRequest;
 use App\Http\Resources\V1\CourtCollection;
 use App\Http\Resources\V1\CourtResource;
@@ -24,6 +24,17 @@ class CourtController extends Controller
 
     public function update(UpdateCourtRequest $request, Court $court) {
         $court->update($request->all());
+    }
+
+    public function updateImages(Request $request, Court $court) {
+        $this->uploadImages($request, $court->id);
+        if(isset($request->deleteImages)) {
+            foreach ($request->deleteImages as $delImg) {
+                CourtImage::where('id', $delImg)->update([
+                    'status' => 0
+                ]);
+            }
+        }
     }
 
     public function store(StoreCourtRequest $request) {
@@ -76,5 +87,10 @@ class CourtController extends Controller
 
             return true;
         }
+    }
+
+    public function destroy (Court $court) {
+        $court->status = "0";
+        $court->save();
     }
 }

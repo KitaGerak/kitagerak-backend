@@ -14,7 +14,7 @@ class Venue extends Model
     ];
 
     public function courts() {
-        return $this->hasMany(Court::class);
+        return $this->hasMany(Court::class)->where('courts.status', '<>', '0');
     }
     
 

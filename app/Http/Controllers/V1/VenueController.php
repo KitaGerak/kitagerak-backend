@@ -36,6 +36,12 @@ class VenueController extends Controller
         }
 
         if ($courtType) {
+            // $courtTypeCount = CourtType::where('type', $courtType)->where('status', '1')->get()->count();
+            // if ($courtTypeCount == 0) {
+            //     return response()->json([
+            //         'data' => []
+            //     ]);
+            // }
             $this->courtTypeObj->withCourts = true;
             return new VenueCollection($this->courtTypeObj->where('type', $courtType)->with('venues')->first()['venues']);
         }
@@ -57,11 +63,22 @@ class VenueController extends Controller
     }
 
     public function update(UpdateVenueRequest $request, Venue $venue) {
+        if (isset($request['address'])) {
+            $address = $venue->address;
+            foreach($request['address'] as $key=>$addr) {
+                if ($key == "postalCode") {
+                    $address->postal_code = $addr;
+                } else {
+                    $address->$key = $addr;
+                }
+            }
+
+            $address->save();
+        }
         $venue->update($request->all());
     }
 
     public function store(StoreVenueRequest $request) {
-        // return $request['address'];
         $address = Address::create([
             'street' => $request['address']['street'],
             'city' => $request['address']['city'],
@@ -84,5 +101,10 @@ class VenueController extends Controller
         });
 
         Venue::insert($bulk->toArray());
+    }
+
+    public function destroy(Venue $venue) {
+        $venue->status = "0";
+        $venue->save();
     }
 }

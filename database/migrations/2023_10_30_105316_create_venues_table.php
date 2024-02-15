@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->foreignId('address_id')->constrained();
-            $table->string('description')->nullable();
+            $table->longText('description')->nullable();
             /* $table->string('rating'); // TODO: tipe data? isinya apa? */
             $table->string('image_url');
             $table->unsignedBigInteger('owner_id');
