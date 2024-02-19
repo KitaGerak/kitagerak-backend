@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Schedule extends Model
+class TransactionStatus extends Model
 {
     use HasFactory;
 
@@ -13,11 +13,7 @@ class Schedule extends Model
         'id'
     ];
 
-    public function court() {
-        return $this->belongsTo(Court::class);
-    }
-
     public function transaction() {
-        return $this->belongsTo(Transaction::class);
+        return $this->hasMany(Transaction::class);
     }
 }

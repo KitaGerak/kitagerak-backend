@@ -32,6 +32,7 @@ class BulkStoreScheduleRequest extends FormRequest
             '*.timeFinish' => ['required'],
             '*.interval' => ['required'],
             '*.availability' => ['required'],
+            '*.price' => ['integer'],
         ];
     }
 

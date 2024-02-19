@@ -13,16 +13,13 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('schedules', function (Blueprint $table) {
+        Schema::create('ratings', function (Blueprint $table) {
             $table->id();
+            $table->unsignedBigInteger('user_id');
             $table->unsignedBigInteger('court_id');
-            $table->date('date');
-            $table->time('time_start');
-            $table->time('time_finish');
-            $table->integer('interval');
-            $table->string('availability');
-            $table->integer('price')->nullable();
-            $table->string('status')->default(1);
+            $table->integer('rating');
+            $table->longText('review');
+            $table->foreign('user_id')->references('id')->on('users');
             $table->foreign('court_id')->references('id')->on('courts');
             $table->timestamps();
         });
@@ -35,6 +32,6 @@ return new class extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('schedules');
+        Schema::dropIfExists('ratings');
     }
 };

@@ -3,7 +3,9 @@
 use App\Http\Controllers\V1\AuthController;
 use App\Http\Controllers\V1\CourtController;
 use App\Http\Controllers\V1\CourtTypeController;
+use App\Http\Controllers\V1\RatingController;
 use App\Http\Controllers\V1\ScheduleController;
+use App\Http\Controllers\V1\TransactionController;
 use App\Http\Controllers\V1\VenueController;
 use App\Http\Controllers\VenueOwnerController;
 use Illuminate\Http\Request;
@@ -64,6 +66,18 @@ Route::group(['prefix' => 'v1'], function() {
             Route::patch('/{schedule:id}', [ScheduleController::class, "update"]);
             Route::delete('/{schedule:id}', [ScheduleController::class, "destroy"]);
             Route::delete('/', [ScheduleController::class, "destroyMultiple"]);
+        });
+
+        Route::group(['prefix' => 'transactions'], function() {
+            Route::get('/', [TransactionController::class, "index"]);
+            Route::get('/{transaction:external_id}', [TransactionController::class, "show"]);
+            Route::post('/', [TransactionController::class, "store"]);
+            Route::patch('/{transaction:external_id}', [TransactionController::class, "update"]);
+        });
+
+        Route::group(['prefix' => 'ratings'], function() {
+            Route::get('/', [RatingController::class, "index"]);
+            Route::post('/', [RatingController::class, "store"]);
         });
         
         Route::group(['prefix' => 'admin'], function() {

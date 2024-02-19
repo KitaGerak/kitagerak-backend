@@ -20,6 +20,8 @@ return new class extends Migration
             $table->unsignedBigInteger('court_type_id')->nullable();
             $table->string('alternate_type')->nullable();
             $table->integer('price');
+            $table->integer('sum_rating')->default(0);
+            $table->integer('number_of_people')->default(0);
             $table->foreign('venue_id')->references('id')->on('venues');
             $table->foreign('court_type_id')->references('id')->on('court_types');
             $table->string('status')->default(1);

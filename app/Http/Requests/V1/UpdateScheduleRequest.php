@@ -33,6 +33,7 @@ class UpdateScheduleRequest extends FormRequest
                 'timeFinish' => ['required'],
                 'interval' => ['required'],
                 'availability' => ['required'],
+                'price' => ['integer'],
             ];
         } else {
             return [
@@ -42,6 +43,7 @@ class UpdateScheduleRequest extends FormRequest
                 'timeFinish' => ['sometimes', 'required'],
                 'interval' => ['sometimes', 'required'],
                 'availability' => ['sometimes', 'required'],
+                'price' => ['integer'],
             ];
         }
         

@@ -3,6 +3,7 @@
 namespace App\Http\Resources\V1;
 
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\DB;
 
 class VenueResource extends JsonResource
 {
@@ -14,7 +15,7 @@ class VenueResource extends JsonResource
      */
     public function toArray($request)
     {
-        // return parent::toArray($request);
+        $rating = DB::select('SELECT SUM(number_of_people) AS totalNumberOfPeople, AVG(sum_rating) AS totalRating FROM `courts` GROUP BY venue_id HAVING venue_id = ?', [$this->id]);
         return [
             'id' => $this->id,
             'name' => $this->name,
@@ -23,6 +24,7 @@ class VenueResource extends JsonResource
             'imageUrl' => $this->image_url,
             'status' => $this->status,
             'courts' => CourtResource::collection($this->whenLoaded('courts')),
+            'rating' => $rating,
         ];
     }
 }

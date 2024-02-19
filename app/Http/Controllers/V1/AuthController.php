@@ -50,7 +50,7 @@ class AuthController extends Controller
             if ($auth->role_id == 2) {
                 $success['token'] = $auth->createToken('venue_owner_token'.$auth->id, ['view', 'create', 'update', 'delete'])->plainTextToken;
             } else {
-                $success['token'] = $auth->createToken('basic_token'.$auth->id, ['view'])->plainTextToken;
+                $success['token'] = $auth->createToken('basic_token'.$auth->id, ['view','make_transaction'])->plainTextToken;
             }
             $success['name'] = $auth->name;
 

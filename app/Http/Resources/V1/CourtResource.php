@@ -26,6 +26,7 @@ class CourtResource extends JsonResource
             'price' => $this->price,
             'images' => CourtImageResource::collection($this->images),
             'status' => $this->status,
+            'ratings' => RatingResource::collection($this->ratings),
         ];
     }
 }

@@ -4,7 +4,7 @@ namespace App\Http\Requests\V1;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class StoreScheduleRequest extends FormRequest
+class StoreTransactionRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -15,7 +15,7 @@ class StoreScheduleRequest extends FormRequest
     {
         $user = $this->user();
 
-        return $user !== null && $user->tokenCan('create');
+        return $user !== null && $user->tokenCan('make_transaction');
     }
 
     /**
@@ -26,22 +26,18 @@ class StoreScheduleRequest extends FormRequest
     public function rules()
     {
         return [
-            'courtId' => ['required', 'exists:courts,id'],
-            'date' => ['required'],
-            'timeStart' => ['required'],
-            'timeFinish' => ['required'],
-            'interval' => ['required'],
-            'price' => ['integer'],
-            'availability' => ['required'],
+            'externalId' => ['required'],
+            'userId' => ['required'],
+            'scheduleId' => ['required', 'exists:schedules,id'],
         ];
     }
 
     protected function prepareForValidation()
     {
         $this->merge([
-            'court_id' => $this->courtId,
-            'time_start' => $this->timeStart,
-            'time_finish' => $this->timeFinish,
+            'external_id' => $this->externalId,
+            'user_id' => $this->userId,
+            'schedule_id' => $this->scheduleId,
         ]);
     }
 
