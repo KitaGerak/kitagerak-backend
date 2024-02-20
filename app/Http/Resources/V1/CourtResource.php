@@ -3,6 +3,7 @@
 namespace App\Http\Resources\V1;
 
 use App\Models\CourtImage;
+use App\Models\CourtType;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class CourtResource extends JsonResource
@@ -21,7 +22,7 @@ class CourtResource extends JsonResource
             'name' => $this->name,
             'venueId' => $this->venue_id,
             'floorType' => $this->floor_type,
-            'courtTypeId' => $this->court_type_id,
+            'courtType' => new CourtTypeResource($this->courtType),
             'alternateType' => $this->alternate_type,
             'price' => $this->price,
             'images' => CourtImageResource::collection($this->images),

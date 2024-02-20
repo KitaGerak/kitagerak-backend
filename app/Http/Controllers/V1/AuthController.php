@@ -24,7 +24,7 @@ class AuthController extends Controller
                 'status' => false,
                 'message' => $validator->errors(),
                 'data' => null,
-            ]);
+            ], 422);
         }
 
         $input = $request->all();
@@ -34,6 +34,8 @@ class AuthController extends Controller
 
         $success['token'] = $user->createToken('basic_token', ['view'])->plainTextToken;
         $success['name'] = $user->name;
+        $success['id'] = $user->id;
+        $success['roleId'] = $user->role_id;
 
         return response()->json([
             'status' => true,
@@ -53,18 +55,20 @@ class AuthController extends Controller
                 $success['token'] = $auth->createToken('basic_token'.$auth->id, ['view','make_transaction'])->plainTextToken;
             }
             $success['name'] = $auth->name;
+            $success['id'] = $auth->id;
+            $success['roleId'] = $auth->role_id;
 
             return response()->json([
                 'status' => true,
                 'message' => 'Autentikasi Sukses',
                 'data' => $success,
-            ], 422);
+            ], 200);
         }
 
         return response()->json([
             'status' => false,
             'message' => 'Autentikasi Gagal',
             'data' => null,
-        ]);
+        ], 422);
     }
 }

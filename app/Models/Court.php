@@ -32,4 +32,8 @@ class Court extends Model
     public function ratings() {
         return $this->hasMany(Rating::class);
     }
+
+    public function courtType() {
+        return $this->belongsTo(CourtType::class);
+    }
 }
