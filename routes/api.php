@@ -89,6 +89,8 @@ Route::group(['prefix' => 'v1'], function() {
             });
         });
 
+        Route::get('schedules/', [ScheduleController::class, "index"]);
+
     });
 
     Route::post('/register', [AuthController::class, "register"]);
