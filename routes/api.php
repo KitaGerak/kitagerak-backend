@@ -8,7 +8,6 @@ use App\Http\Controllers\V1\ScheduleController;
 use App\Http\Controllers\V1\TransactionController;
 use App\Http\Controllers\V1\VenueController;
 use App\Http\Controllers\VenueOwnerController;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 /*

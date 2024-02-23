@@ -5,6 +5,7 @@ namespace App\Http\Resources\V1;
 use App\Models\CourtImage;
 use App\Models\CourtType;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\DB;
 
 class CourtResource extends JsonResource
 {
@@ -27,6 +28,10 @@ class CourtResource extends JsonResource
             'price' => $this->price,
             'images' => CourtImageResource::collection($this->images),
             'status' => $this->status,
+            'rating' => [
+                "totalNumberOfPeople" => $this->number_of_people,
+                "totalRating" => $this->sum_rating,
+            ],
             'ratings' => RatingResource::collection($this->ratings),
         ];
     }
