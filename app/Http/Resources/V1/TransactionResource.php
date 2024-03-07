@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\V1;
 
+use App\Models\Rating;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class TransactionResource extends JsonResource
@@ -38,6 +39,7 @@ class TransactionResource extends JsonResource
      */
     public function toArray($request)
     {
+        $rating = Rating::where('user_id', $this->user_id)->where('court_id', $this->schedule->court->id)->where('transaction_id', $this->external_id)->count();
         return [
             'externalId' => $this->external_id,
             'orderDate' => $this->tgl_indo(explode(" ", explode("T", $this->created_at)[0])[0]),
@@ -45,6 +47,8 @@ class TransactionResource extends JsonResource
             'court' => new CourtResource($this->whenLoaded('court')),
             'reason' => $this->reason,
             'transactionStatus' => new TransactionStatusResource($this->whenLoaded('transactionStatus')),
+            'isReviewed' => $rating > 0 ? true : false,
+            'venueId' => $this->court->venue->id,
         ];
     }
 }

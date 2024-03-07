@@ -49,6 +49,11 @@ return new class extends Migration
                 'status' => 'menunggu konfirmasi',
             ]
         );
+        DB::table('transaction_statuses')->insert(
+            [
+                'status' => 'selesai',
+            ]
+        );
 
     }
 

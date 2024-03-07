@@ -30,6 +30,7 @@ class StoreRatingRequest extends FormRequest
             'review' => ['required'],
             'courtId' => ['required', 'exists:courts,id'],
             'userId' => ['required', 'exists:users,id'],
+            'transactionId' => ['required', 'exists:transactions,external_id']
         ];
     }
 
@@ -38,6 +39,7 @@ class StoreRatingRequest extends FormRequest
         $this->merge([
             'court_id' => $this->courtId,
             'user_id' => $this->userId,
+            'transaction_id' => $this->transactionId
         ]);
     }
 }
