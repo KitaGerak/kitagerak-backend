@@ -42,7 +42,11 @@ Route::group(['prefix' => 'v1'], function() {
 
     Route::group(['middleware' => 'auth:sanctum'], function() {
 
-        Route::group(['prefix' => 'venues'], function() {            
+        Route::get('/filterOptions', [VenueController::class, "filterOptions"]);
+        Route::get('/venueSearchSuggestions', [VenueController::class, "searchSuggestion"]);
+        Route::get('/transactionFilterOptions', [TransactionController::class, "filterOptions"]);
+
+        Route::group(['prefix' => 'venues'], function() {
             Route::post('/', [VenueController::class, "store"]);
             Route::put('/{venue:id}', [VenueController::class, "update"]);
             Route::patch('/{venue:id}', [VenueController::class, "update"]);

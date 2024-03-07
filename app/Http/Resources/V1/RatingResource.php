@@ -20,7 +20,8 @@ class RatingResource extends JsonResource
             'rating' => $this->rating,
             'review' => $this->review,
             'user' => new UserResource($this->user),
-            "ratingPhotos" => RatingPhotoResource::collection($this->ratingPhotos),
+            'court' => $this->court->name,
+            'ratingPhotos' => RatingPhotoResource::collection($this->ratingPhotos),
         ];
     }
 }

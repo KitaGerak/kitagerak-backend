@@ -31,6 +31,7 @@ class StoreCourtRequest extends FormRequest
             'floorType' => ['required'],
             'courtTypeId' => ['required', 'exists:court_types,id'],
             'alternateType' => ['string'],
+            'size' => ['double'],
             'price' => ['required', 'integer'],
         ];
     }

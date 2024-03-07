@@ -19,6 +19,7 @@ return new class extends Migration
             $table->string('floor_type');
             $table->unsignedBigInteger('court_type_id')->nullable();
             $table->string('alternate_type')->nullable();
+            $table->double('size')->default(0);
             $table->integer('price');
             $table->integer('sum_rating')->default(0);
             $table->integer('number_of_people')->default(0);

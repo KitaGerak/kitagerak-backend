@@ -25,6 +25,7 @@ class CourtResource extends JsonResource
             'floorType' => $this->floor_type,
             'courtType' => new CourtTypeResource($this->courtType),
             'alternateType' => $this->alternate_type,
+            'size' => $this->size,
             'price' => $this->price,
             'images' => CourtImageResource::collection($this->images),
             'status' => $this->status,

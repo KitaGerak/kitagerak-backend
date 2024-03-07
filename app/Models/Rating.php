@@ -17,6 +17,10 @@ class Rating extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function court() {
+        return $this->belongsTo(Court::class);
+    }
+
     public function ratingPhotos() {
         return $this->hasMany(RatingPhoto::class);
     }

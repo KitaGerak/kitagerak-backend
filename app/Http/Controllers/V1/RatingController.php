@@ -21,9 +21,9 @@ class RatingController extends Controller
             $userId = $request->query('user_id');
             
             if (auth('sanctum')->user()->role_id == 1) {
-                return new RatingCollection(Rating::paginate(10));
+                return new RatingCollection(Rating::paginate(10)->withQueryString());
             } if ($userId && $userIdAuth == $userId) {
-                return new RatingCollection(Rating::where('user_id', $userId)->paginate(10));
+                return new RatingCollection(Rating::where('user_id', $userId)->paginate(10)->withQueryString());
             }
         }
 
@@ -31,7 +31,7 @@ class RatingController extends Controller
             'status' => false,
             'message' => "User ID Required",
             'data' => null,
-        ]);
+        ], 422);
     }
 
     public function store(StoreRatingRequest $request) {
@@ -47,7 +47,7 @@ class RatingController extends Controller
                 'status' => false,
                 'message' => "User ID Required",
                 'data' => null,
-            ]);
+            ], 422);
         }
         $transactionCount = Transaction::where('user_id', $userId)->whereIn('id', $cleanShcedulesId)->count();
         $ratingCount = Rating::where('user_id', $userId)->where('court_id', $request->courtId)->count();
@@ -56,7 +56,7 @@ class RatingController extends Controller
                 'status' => false,
                 'message' => "Rating <= transaction",
                 'data' => null,
-            ]);
+            ], 422);
         }
 
         $res = new RatingResource(Rating::create($request->all()));

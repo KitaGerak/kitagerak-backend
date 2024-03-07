@@ -31,7 +31,8 @@ class UpdateCourtRequest extends FormRequest
                 'venueId' => ['required','exists:venues,id'],
                 'floorType' => ['required'],
                 'courtTypeId' => ['required', 'exists:court_types,id'],
-                // 'alternateType' => ['string'],
+                'alternateType' => ['string'],
+                'size' => ['double'],
                 'price' => ['required', 'integer'],
             ];
         } else {
@@ -40,7 +41,8 @@ class UpdateCourtRequest extends FormRequest
                 'venueId' => ['sometimes','required','exists:venues,id'],
                 'floorType' => ['sometimes','required'],
                 'courtTypeId' => ['sometimes','required', 'exists:court_types,id'],
-                // 'alternateType' => ['sometimes','string'],
+                'alternateType' => ['sometimes','string'],
+                'size' => ['sometimes', 'double'],
                 'price' => ['sometimes','required', 'integer'],
             ];
         }
