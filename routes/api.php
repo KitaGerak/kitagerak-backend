@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\V1\AccountController;
 use App\Http\Controllers\V1\AuthController;
 use App\Http\Controllers\V1\CourtController;
 use App\Http\Controllers\V1\CourtTypeController;
@@ -81,6 +82,11 @@ Route::group(['prefix' => 'v1'], function() {
         Route::group(['prefix' => 'ratings'], function() {
             Route::get('/', [RatingController::class, "index"]);
             Route::post('/', [RatingController::class, "store"]);
+        });
+
+        Route::group(['prefix' => 'account'], function() {
+            Route::get('/{user:id}', [AccountController::class, "show"]);
+            Route::post('/updateData/{user:id}', [AccountController::class, "updateData"]);
         });
         
         Route::group(['prefix' => 'admin'], function() {
