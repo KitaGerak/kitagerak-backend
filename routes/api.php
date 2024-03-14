@@ -1,8 +1,14 @@
 <?php
 
-use App\Http\Controllers\VenueController;
+use App\Http\Controllers\V1\AccountController;
+use App\Http\Controllers\V1\AuthController;
+use App\Http\Controllers\V1\CourtController;
+use App\Http\Controllers\V1\CourtTypeController;
+use App\Http\Controllers\V1\RatingController;
+use App\Http\Controllers\V1\ScheduleController;
+use App\Http\Controllers\V1\TransactionController;
+use App\Http\Controllers\V1\VenueController;
 use App\Http\Controllers\VenueOwnerController;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -23,4 +29,79 @@ use Illuminate\Support\Facades\Route;
 Route::post('/venue_owners', [VenueOwnerController::class, 'register']);
 Route::post('/venue_owners/login', [VenueOwnerController::class, 'login']);
 
-Route::get('/venues/{venue_owner_id}', [VenueController::class, 'getVenueByOwner']);
+Route::group(['prefix' => 'v1'], function() {
+
+    Route::group(['prefix' => 'venues'], function() {
+        Route::get('/', [VenueController::class, "index"]);
+        Route::get('/{venue:id}', [VenueController::class, "show"]);
+    });
+
+    Route::group(['prefix' => 'courts'], function() {
+        // Route::get('/', [CourtController::class, "index"]);
+        Route::get('/{court:id}', [CourtController::class, "show"]);
+    });
+
+    Route::group(['middleware' => 'auth:sanctum'], function() {
+
+        Route::get('/filterOptions', [VenueController::class, "filterOptions"]);
+        Route::get('/venueSearchSuggestions', [VenueController::class, "searchSuggestion"]);
+        Route::get('/transactionFilterOptions', [TransactionController::class, "filterOptions"]);
+
+        Route::group(['prefix' => 'venues'], function() {
+            Route::post('/', [VenueController::class, "store"]);
+            Route::put('/{venue:id}', [VenueController::class, "update"]);
+            Route::patch('/{venue:id}', [VenueController::class, "update"]);
+            Route::post('/bulk', [VenueController::class, "bulkStore"]);
+            Route::delete('/{venue:id}', [VenueController::class, "destroy"]);
+        });
+
+        Route::group(['prefix' => 'courts'], function() {
+            Route::post('/', [CourtController::class, "store"]);
+            Route::post('/{court:id}/updateImages', [CourtController::class, "updateImages"]);
+            Route::put('/{court:id}', [CourtController::class, "update"]);
+            Route::patch('/{court:id}', [CourtController::class, "update"]);
+            Route::delete('/{court:id}', [CourtController::class, "destroy"]);
+        });
+
+        Route::group(['prefix' => 'schedules'], function() {
+            Route::post('/', [ScheduleController::class, "store"]);
+            Route::post('/bulkStore', [ScheduleController::class, "bulkStore"]);
+            Route::put('/{schedule:id}', [ScheduleController::class, "update"]);
+            Route::patch('/{schedule:id}', [ScheduleController::class, "update"]);
+            Route::delete('/{schedule:id}', [ScheduleController::class, "destroy"]);
+            Route::delete('/', [ScheduleController::class, "destroyMultiple"]);
+        });
+
+        Route::group(['prefix' => 'transactions'], function() {
+            Route::get('/', [TransactionController::class, "index"]);
+            Route::get('/{transaction:external_id}', [TransactionController::class, "show"]);
+            Route::post('/', [TransactionController::class, "store"]);
+            Route::patch('/{transaction:external_id}', [TransactionController::class, "update"]);
+        });
+
+        Route::group(['prefix' => 'ratings'], function() {
+            Route::get('/', [RatingController::class, "index"]);
+            Route::post('/', [RatingController::class, "store"]);
+        });
+
+        Route::group(['prefix' => 'account'], function() {
+            Route::get('/{user:id}', [AccountController::class, "show"]);
+            Route::post('/updateData/{user:id}', [AccountController::class, "updateData"]);
+        });
+        
+        Route::group(['prefix' => 'admin'], function() {
+            Route::group(['prefix' => 'court-types'], function() {
+                Route::get('/', [CourtTypeController::class, "index"]);
+                Route::post('/', [CourtTypeController::class, "store"]);
+                Route::put('/{courtType:id}', [CourtTypeController::class, "update"]);
+                Route::delete('/{courtType:id}', [CourtTypeController::class, "delete"]);
+            });
+        });
+
+        Route::get('schedules/', [ScheduleController::class, "index"]);
+
+    });
+
+    Route::post('/register', [AuthController::class, "register"]);
+    Route::post('/login', [AuthController::class, "login"]);
+});

@@ -40,6 +40,14 @@ class User extends Authenticatable
      */
     protected $casts = [
         'email_verified_at' => 'datetime',
-        'password' => 'hashed',
+        // 'password' => 'hashed',
     ];
+
+    public function transactions() {
+        return $this->hasMany(Transaction::class);
+    }
+
+    public function role() {
+        return $this->belongsTo(Role::class);
+    }
 }

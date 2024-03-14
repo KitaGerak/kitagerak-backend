@@ -15,9 +15,12 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->foreignId('address_id')->constrained();
-            $table->string('description');
+            $table->longText('description')->nullable();
             /* $table->string('rating'); // TODO: tipe data? isinya apa? */
             $table->string('image_url');
+            $table->unsignedBigInteger('owner_id');
+            $table->foreign('owner_id')->references('id')->on('users');
+            $table->string('status')->default(1);
             $table->timestamps();
         });
     }
