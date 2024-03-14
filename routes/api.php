@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\VenueController;
 use App\Http\Controllers\VenueOwnerController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -21,3 +22,5 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('/venue_owners', [VenueOwnerController::class, 'register']);
 Route::post('/venue_owners/login', [VenueOwnerController::class, 'login']);
+
+Route::get('/venues/{venue_owner_id}', [VenueController::class, 'getVenueByOwner']);

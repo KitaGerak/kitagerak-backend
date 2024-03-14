@@ -80,6 +80,7 @@ class VenueOwnerController extends Controller
         return response()->json([
             'success' => true,
             'token' => $venue_owner->token,
+            'venue_owner_id' => $venue_owner->id,
             'venue_owner' => $venue_owner->email,
         ]);
     }
