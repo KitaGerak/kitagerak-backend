@@ -12,8 +12,10 @@ use App\Models\Address;
 use App\Models\Court;
 use App\Models\CourtType;
 use App\Models\Venue;
+use App\Models\VenueImage;
 use App\Services\V1\VenueQuery;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Storage;
 
 class VenueController extends Controller
 {
@@ -26,7 +28,8 @@ class VenueController extends Controller
 
     public function index(Request $request) {
         $includeCourts = $request->query('includeCourts');
-
+        $ownerId = $request->owner_id;
+        
         $filter = new VenueQuery();
         $queryItems = $filter->transform($request); //[['column', 'operator', 'value']]
 
@@ -35,6 +38,9 @@ class VenueController extends Controller
             $this->courtTypeObj->withCourts = true;
             $res->with('courts');
         }
+
+        if ($ownerId)
+            $res = $res->where('owner_id', $ownerId);
 
         $limit = $request->query('limit');
 
@@ -130,21 +136,55 @@ class VenueController extends Controller
         $venue->update($request->all());
     }
 
+    //StoreVenueRequest
     public function store(StoreVenueRequest $request) {
-        $address = Address::create([
-            'street' => $request['address']['street'],
-            'city' => $request['address']['city'],
-            'province' => $request['address']['province'],
-            'postal_code' => $request['address']['postalCode'],
-            'longitude' => $request['address']['longitude'],
-            'latitude' => $request['address']['latitude'],
-        ]);
-        return new VenueResource(Venue::create([
-            'name' => $request['name'],
-            'owner_id' => $request['owner_id'],
-            'image_url' => $request['image_url'],
-            'address_id' => $address['id'],
-        ]));
+
+        try {
+            if($request->hasFile('venueImages'))
+            {
+                $venueImages = $request->venueImages;
+                
+                foreach ($venueImages as $file) {
+                    // if($file == null)
+                    //     return response()->json($files);
+
+                    // $filename = $file->getClientOriginalName();
+                    $extension = $file->getClientOriginalExtension();
+    
+                    // $filename = $file->store('venue_images');
+                    $filename = time() . '.' . $file->getClientOriginalExtension();
+                    $path = Storage::disk('public')->put('venue_images', $file);
+    
+                    $newVenueImage = new VenueImage();
+                    $newVenueImage->venue_id = 99;
+                    $newVenueImage->url = $path;
+                    $newVenueImage->status = "Active";
+                    $newVenueImage->save();
+                }
+            }
+
+            $address = Address::create([
+                'street' => $request['address']['street'],
+                'city' => $request['address']['city'],
+                'province' => $request['address']['province'],
+                'postal_code' => $request['address']['postalCode'],
+                'longitude' => $request['address']['longitude'],
+                'latitude' => $request['address']['latitude'],
+            ]);
+            return new VenueResource(Venue::create([
+                'name' => $request['name'],
+                'owner_id' => $request['owner_id'],
+                'image_url' => $request['image_url'],
+                'address_id' => $address['id'],
+            ]));
+    
+        } catch (\Exception $e)
+        {
+            return response()->json('Error : ' . $e->getMessage());
+        }
+       
+
+       
     }
 
     public function bulkStore(BulkStoreVenueRequest $request) {

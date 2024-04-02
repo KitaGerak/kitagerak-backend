@@ -48,7 +48,6 @@ class AuthController extends Controller
     public function login(Request $request) {
         if (Auth::attempt(['email' => $request->email, 'password' => $request->password])) {
             $auth = Auth::user();
-
             if ($auth->role_id == 2) {
                 $success['token'] = $auth->createToken('venue_owner_token'.$auth->id, ['view', 'create', 'update', 'delete'])->plainTextToken;
             } else {

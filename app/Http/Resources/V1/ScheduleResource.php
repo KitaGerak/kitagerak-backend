@@ -38,6 +38,7 @@ class ScheduleResource extends JsonResource
     public function toArray($request)
     {
 
+
         return [
             'id' => $this->id,
             'date' => $this->tgl_indo($this->date),
@@ -47,6 +48,7 @@ class ScheduleResource extends JsonResource
             'availability' => $this->availability,
             'price' => $this->price,
             'status' => $this->status,
+            'courtId' => $this->court_id,
         ];
     }
 }

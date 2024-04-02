@@ -10,13 +10,29 @@ use App\Http\Resources\V1\CourtCollection;
 use App\Http\Resources\V1\CourtResource;
 use App\Models\Court;
 use App\Models\CourtImage;
+use App\Models\Venue;
 
 class CourtController extends Controller
 {
 
-    // public function index(Request $request) {
-    //     return new CourtCollection(Court::paginate(10));
-    // }
+    public function index(Request $request) {
+        $court = new Court();
+        if($request->query('venueId'))
+            $court = $court->where("venue_id", $request->query('venueId'));
+
+        if($request->query('ownerId'))
+        {
+            $venues = Venue::where('owner_id', $request->query('ownerId'))->get();
+            $venueIds = $venues->pluck('id');
+
+            $court = $court->whereIn("venue_id", $venueIds);
+        }
+
+        $court = $court->get();
+
+        return response()->json(["data" => $court]);
+        // return new CourtCollection(Court::paginate(10));
+    }
 
     public function show(Court $court) {
         return new CourtResource($court);
@@ -37,11 +53,18 @@ class CourtController extends Controller
         }
     }
 
+    // StoreCourtRequest
     public function store(StoreCourtRequest $request) {
-        $res = Court::create($request->all());
-        $this->uploadImages($request, $res->id);
 
-        return new CourtResource(Court::where('id', $res->id)->first());
+        try {
+            $res = Court::create($request->all());
+            $this->uploadImages($request, $res->id);
+    
+            return new CourtResource(Court::where('id', $res->id)->first());
+        } catch (\Exception $e)
+        {
+            return response()->json($e->getMessage());
+        }
     }
 
     public function uploadImages(Request $request, $courtId) {

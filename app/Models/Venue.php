@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Venue extends Model
 {
@@ -20,5 +21,10 @@ class Venue extends Model
 
     public function address() {
         return $this->belongsTo(Address::class);
+    }
+
+    public function venueOwner(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'venue_owner_and_venue');
     }
 }

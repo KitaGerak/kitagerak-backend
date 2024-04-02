@@ -34,10 +34,12 @@ Route::group(['prefix' => 'v1'], function() {
     Route::group(['prefix' => 'venues'], function() {
         Route::get('/', [VenueController::class, "index"]);
         Route::get('/{venue:id}', [VenueController::class, "show"]);
+        Route::post('/', [VenueController::class, "store"]);
+
     });
 
     Route::group(['prefix' => 'courts'], function() {
-        // Route::get('/', [CourtController::class, "index"]);
+        Route::get('/', [CourtController::class, "index"]);
         Route::get('/{court:id}', [CourtController::class, "show"]);
     });
 
