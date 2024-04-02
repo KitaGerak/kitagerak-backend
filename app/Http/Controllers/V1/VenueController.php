@@ -137,7 +137,7 @@ class VenueController extends Controller
     }
 
     //StoreVenueRequest
-    public function store(StoreVenueRequest $request) {
+    public function store(Request $request) {
 
         try {
             if($request->hasFile('venueImages'))

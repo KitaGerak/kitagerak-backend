@@ -261,6 +261,19 @@ class ScheduleController extends Controller
 
         Schedule::insert($bulk->toArray());
     }
+
+    public function bulkStoreByDateTime(Request $request) {
+        $dateStart = $request->dateStart;
+        $dateEnd = $request->dateEnd;
+        $timeStart = $request->timeStart;
+        $timeEnd = $request->timeEnd;
+
+        $courtId = $request->courtId;
+        $interval = $request->interval;
+        $price = $request->price;
+
+        
+    }
     
     public function update(Schedule $schedule, UpdateScheduleRequest $request) {
         $schedule->update($request->all());
