@@ -27,4 +27,8 @@ class Venue extends Model
     {
         return $this->belongsToMany(User::class, 'venue_owner_and_venue');
     }
+
+    public function owner() {
+        return $this->belongsTo(User::class, 'owner_id');
+    }
 }

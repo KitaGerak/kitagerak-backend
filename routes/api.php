@@ -4,6 +4,8 @@ use App\Http\Controllers\V1\AccountController;
 use App\Http\Controllers\V1\AuthController;
 use App\Http\Controllers\V1\CourtController;
 use App\Http\Controllers\V1\CourtTypeController;
+use App\Http\Controllers\V1\InvoiceController;
+use App\Http\Controllers\V1\PaymentWebhookController;
 use App\Http\Controllers\V1\RatingController;
 use App\Http\Controllers\V1\ScheduleController;
 use App\Http\Controllers\V1\TransactionController;
@@ -78,6 +80,7 @@ Route::group(['prefix' => 'v1'], function() {
             Route::get('/', [TransactionController::class, "index"]);
             Route::get('/{transaction:external_id}', [TransactionController::class, "show"]);
             Route::post('/', [TransactionController::class, "store"]);
+            Route::post('/bulkStore', [TransactionController::class, "bulkStore"]);
             Route::patch('/{transaction:external_id}', [TransactionController::class, "update"]);
         });
 
@@ -107,3 +110,6 @@ Route::group(['prefix' => 'v1'], function() {
     Route::post('/register', [AuthController::class, "register"]);
     Route::post('/login', [AuthController::class, "login"]);
 });
+
+Route::post('/payments/webhook/xendit', [PaymentWebhookController::class, "xenditWebhook"]);
+Route::get('/invoices/{invoiceId}', [InvoiceController::class, "getXenditInvoice"]);
