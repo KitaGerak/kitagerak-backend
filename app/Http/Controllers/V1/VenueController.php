@@ -8,13 +8,16 @@ use App\Http\Requests\V1\BulkStoreVenueRequest;
 use App\Http\Requests\V1\StoreVenueRequest;
 use App\Http\Requests\V1\UpdateVenueRequest;
 use App\Http\Resources\V1\VenueResource;
+use App\Mail\RegisterNewVenueMail;
 use App\Models\Address;
 use App\Models\Court;
 use App\Models\CourtType;
+use App\Models\User;
 use App\Models\Venue;
 use App\Models\VenueImage;
 use App\Services\V1\VenueQuery;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 
 class VenueController extends Controller
@@ -162,6 +165,10 @@ class VenueController extends Controller
                     $newVenueImage->save();
                 }
             }
+
+            $user = User::find($request->owner_id);
+
+            Mail::to($user->email)->send(new RegisterNewVenueMail());
 
             $address = Address::create([
                 'street' => $request['address']['street'],

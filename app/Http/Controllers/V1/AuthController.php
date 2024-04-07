@@ -5,43 +5,56 @@ namespace App\Http\Controllers\V1;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use Illuminate\Auth\Events\Registered;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 
 class AuthController extends Controller
 {
     public function register(Request $request) {
-        $validator = Validator::make($request->all(), [
-            'name' => 'required',
-            'email' => 'required|email',
-            'password' => 'required',
-            'confirm_password' => 'required|same:password',
-            'role_id' => 'required|exists:roles,id',
-        ]);
-
-        if ($validator->fails()) {
+        try {
+            $validator = Validator::make($request->all(), [
+                'name' => 'required',
+                'email' => 'required|email',
+                'password' => 'required',
+                'confirm_password' => 'required|same:password',
+                'role_id' => 'required|exists:roles,id',
+            ]);
+    
+            if ($validator->fails()) {
+                return response()->json([
+                    'status' => false,
+                    'message' => $validator->errors(),
+                    'data' => null,
+                ], 422);
+            }
+    
+            $input = $request->all();
+    
+            $input['password'] = bcrypt($input['password']);
+            $user = User::create($input)->sendEmailVerificationNotification();
+    
+            $success['token'] = $user->createToken('basic_token', ['view','make_transaction'])->plainTextToken;
+            $success['name'] = $user->name;
+            $success['id'] = $user->id;
+            $success['roleId'] = $user->role_id;
+    
+            // event(new Registered($user));
+    
+            return response()->json([
+                'status' => true,
+                'message' => 'Register Sukses',
+                'data' => $success,
+            ]);
+        } catch (\Exception $e)
+        {
             return response()->json([
                 'status' => false,
-                'message' => $validator->errors(),
-                'data' => null,
-            ], 422);
+                'message' => 'Register Gagal',
+                'data' => $e->getMessage(),
+            ]);
         }
-
-        $input = $request->all();
-
-        $input['password'] = bcrypt($input['password']);
-        $user = User::create($input);
-
-        $success['token'] = $user->createToken('basic_token', ['view','make_transaction'])->plainTextToken;
-        $success['name'] = $user->name;
-        $success['id'] = $user->id;
-        $success['roleId'] = $user->role_id;
-
-        return response()->json([
-            'status' => true,
-            'message' => 'Register Sukses',
-            'data' => $success,
-        ]);
+        
 
     }
 

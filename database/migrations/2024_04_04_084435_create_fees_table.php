@@ -17,7 +17,7 @@ return new class extends Migration
         Schema::create('fees', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->integer('amount_rp');
+            $table->integer('amount_rp')->nullable();
             $table->timestamps();
         });
 

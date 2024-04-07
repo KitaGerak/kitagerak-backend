@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\V1\ImageController;
+use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -18,4 +19,11 @@ use Illuminate\Support\Facades\Route;
 //     return view('swagger-ui');
 // });
 
+Route::get('/', function () {
+    return "KitaGerak API";
+});
 Route::get('/images/{fileName}', [ImageController::class, "show"]);
+
+Route::get('/email/verify/{id}/{hash}', function(EmailVerificationRequest $request) {
+    $request->fulfill();
+}) ;

@@ -1,0 +1,2 @@
+Lorem ipsum dolor sit amet consectetur, adipisicing elit. Animi fugiat necessitatibus doloremque, maiores eum, nemo alias officia blanditiis, voluptatum ducimus minima. Laborum, facere in! Sapiente ea repellendus illum quia dolorum.
+[KitaGerak] Register New Venue Mail
