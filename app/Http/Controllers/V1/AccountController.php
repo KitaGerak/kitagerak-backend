@@ -26,10 +26,14 @@ class AccountController extends Controller
 
             $extension = $image->getClientOriginalExtension();
             if (in_array(strtolower($extension), $allowedImageExtensions)) {
-                $fileName = $image->store('private/images');
+                $fileName = $image->store('private/images/user_profiles');
                 $user->photo_url = $fileName;
                 $user->save();
             }
         }
+
+        return response()->json([
+            "data" => $user,
+        ]);
     }
 }

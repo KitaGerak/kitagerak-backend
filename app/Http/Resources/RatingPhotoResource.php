@@ -16,7 +16,7 @@ class RatingPhotoResource extends JsonResource
     {
         return [
             "id" => $this->id,
-            "url" => $this->url,
+            "url" => str_replace("private", env("APP_URL"), $this->url),
         ];
     }
 }

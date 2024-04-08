@@ -17,7 +17,7 @@ class CourtImageResource extends JsonResource
         // return parent::toArray($request);
         return [
             'id' => $this->id,
-            'url' => str_replace("private", "http://kitagerak-backend.test", $this->url),
+            'url' => str_replace("private", env("APP_URL"), $this->url),
             'status' => $this->status,
         ];
     }

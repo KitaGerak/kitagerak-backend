@@ -87,6 +87,7 @@ Route::group(['prefix' => 'v1'], function() {
         Route::group(['prefix' => 'ratings'], function() {
             Route::get('/', [RatingController::class, "index"]);
             Route::post('/', [RatingController::class, "store"]);
+            Route::post('/{rating:id}', [RatingController::class, "storePhoto"]);
         });
 
         Route::group(['prefix' => 'account'], function() {

@@ -36,6 +36,9 @@ class AuthController extends Controller
         $success['name'] = $user->name;
         $success['id'] = $user->id;
         $success['roleId'] = $user->role_id;
+        $success['phoneNumber'] = $user->phone_number;
+        $success['emailAddress'] = $user->email;
+        $success['profilePicture'] = $user->photo_url;
 
         return response()->json([
             'status' => true,
@@ -48,6 +51,7 @@ class AuthController extends Controller
     public function login(Request $request) {
         if (Auth::attempt(['email' => $request->email, 'password' => $request->password])) {
             $auth = Auth::user();
+            
             if ($auth->role_id == 2) {
                 $success['token'] = $auth->createToken('venue_owner_token'.$auth->id, ['view', 'create', 'update', 'delete'])->plainTextToken;
             } else {
@@ -56,6 +60,9 @@ class AuthController extends Controller
             $success['name'] = $auth->name;
             $success['id'] = $auth->id;
             $success['roleId'] = $auth->role_id;
+            $success['phoneNumber'] = $auth->phone_number;
+            $success['emailAddress'] = $auth->email;
+            $success['profilePicture'] = $auth->photo_url;
 
             return response()->json([
                 'status' => true,

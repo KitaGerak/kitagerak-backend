@@ -18,4 +18,4 @@ use Illuminate\Support\Facades\Route;
 //     return view('swagger-ui');
 // });
 
-Route::get('/images/{fileName}', [ImageController::class, "show"]);
+Route::get('/images/{folder}/{fileName?}', [ImageController::class, "show"]);
