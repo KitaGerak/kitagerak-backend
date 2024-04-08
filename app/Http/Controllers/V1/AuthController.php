@@ -68,7 +68,25 @@ class AuthController extends Controller
                 'data' => $e->getMessage(),
             ]);
         }
-        
+
+        $input = $request->all();
+
+        $input['password'] = bcrypt($input['password']);
+        $user = User::create($input);
+
+        $success['token'] = $user->createToken('basic_token', ['view','make_transaction'])->plainTextToken;
+        $success['name'] = $user->name;
+        $success['id'] = $user->id;
+        $success['roleId'] = $user->role_id;
+        $success['phoneNumber'] = $user->phone_number;
+        $success['emailAddress'] = $user->email;
+        $success['profilePicture'] = $user->photo_url;
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Register Sukses',
+            'data' => $success,
+        ]);
 
     }
 
@@ -92,6 +110,9 @@ class AuthController extends Controller
             $success['name'] = $auth->name;
             $success['id'] = $auth->id;
             $success['roleId'] = $auth->role_id;
+            $success['phoneNumber'] = $auth->phone_number;
+            $success['emailAddress'] = $auth->email;
+            $success['profilePicture'] = $auth->photo_url;
 
             return response()->json([
                 'status' => true,

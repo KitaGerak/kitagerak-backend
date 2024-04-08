@@ -36,3 +36,4 @@ Route::get('/images/{fileName}', [ImageController::class, "show"]);
 Route::get('/email/verify/{id}/{hash}', [VerifyEmailController::class, '__invoke']);
 
 Auth::routes(['verify' => true]);
+Route::get('/images/{folder}/{fileName?}', [ImageController::class, "show"]);

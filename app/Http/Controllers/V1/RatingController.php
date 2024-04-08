@@ -9,6 +9,7 @@ use App\Http\Resources\V1\RatingCollection;
 use App\Http\Resources\V1\RatingResource;
 use App\Models\Court;
 use App\Models\Rating;
+use App\Models\RatingPhoto;
 use App\Models\Schedule;
 use App\Models\Transaction;
 
@@ -71,5 +72,49 @@ class RatingController extends Controller
             'number_of_people' => $courtNumberVote,
         ]);
         return $res;
+    }
+
+    public function storePhoto(Request $request, Rating $rating) {
+        if ($request->has('files')) {
+            $files = $request->file('files');
+
+            $allowedImageExtensions = ['jpg', 'jpeg', 'png', 'webp'];
+            $allowedVideoExtensions = ['mp4', 'mov'];
+
+            $invalidFile = [];
+
+            foreach($files as $file) {
+                $extension = $file->getClientOriginalExtension();
+
+                if (!in_array(strtolower($extension), $allowedImageExtensions) && !in_array(strtolower($extension), $allowedVideoExtensions)) {
+                    array_push($invalidFile, $file->getClientOriginalName());
+                }
+            }
+
+            if(count($invalidFile) == 0) {
+                $successFile = [];
+                foreach($files as $file) {
+                    $fileName = $file->store('private/images/ratings');
+                    RatingPhoto::create([
+                        'rating_id' => $rating->id,
+                        'url' => $fileName,
+                    ]);
+                    array_push($successFile, $fileName);
+                }
+                return response()->json([
+                    'status' => true,
+                    'message' => 'Success',
+                    'successFile' => $successFile,
+                ]);
+            } else {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Invalid File Type',
+                    'invalidFileName' => $invalidFile,
+                ], 500);
+            }
+
+            return true;
+        }
     }
 }

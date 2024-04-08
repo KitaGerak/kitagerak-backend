@@ -8,8 +8,13 @@ use Illuminate\Support\Facades\Storage;
 
 class ImageController extends Controller
 {
-    public function show($fileName) {
-        $path = "private/images/$fileName";
+    public function show($folder, $fileName = null) {
+        if ($fileName == null) {
+            $path = "private/images/$folder";
+        } else {
+            $path = "private/images/$folder/$fileName";
+        }
+
         if (Storage::exists($path)) {
             // if ($this->middleware('auth') && $this->middleware('is.admin')) {
                 return Storage::download($path);

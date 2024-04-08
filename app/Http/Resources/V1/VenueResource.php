@@ -21,7 +21,7 @@ class VenueResource extends JsonResource
             'name' => $this->name,
             'address' => new AddressResource($this->address),
             'ownerId' => $this->owner_id,
-            'imageUrl' => $this->image_url,
+            'imageUrl' => str_replace("private", env("APP_URL"), $this->image_url),
             'status' => $this->status,
             'courts' => CourtResource::collection($this->whenLoaded('courts')),
             'rating' => $rating,
