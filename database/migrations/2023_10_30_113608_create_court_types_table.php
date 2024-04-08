@@ -21,29 +21,6 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        DB::table('court_types')->insert(
-            [
-                'type' => 'Basket',
-            ]
-        );
-
-        DB::table('court_types')->insert(
-            [
-                'type' => 'Badminton',
-            ]
-        );
-
-        DB::table('court_types')->insert(
-            [
-                'type' => 'Futsal',
-            ]
-        );
-
-        DB::table('court_types')->insert(
-            [
-                'type' => 'Voli',
-            ]
-        );
     }
 
     /**

@@ -2,18 +2,19 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
+use App\Models\Address;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash;
 
-class UserSeeder extends Seeder
+class AddressSeeder extends Seeder
 {
     /**
      * Run the database seeds.
+     *
+     * @return void
      */
-    public function run(): void
+    public function run()
     {
-        User::factory()->count(20)->create();
+        Address::factory()->count(35)->create();
     }
 }

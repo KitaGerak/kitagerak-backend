@@ -14,11 +14,12 @@ return new class extends Migration
         Schema::create('venues', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->foreignId('address_id')->constrained();
             $table->longText('description')->nullable();
             /* $table->string('rating'); // TODO: tipe data? isinya apa? */
             $table->string('image_url');
             $table->unsignedBigInteger('owner_id');
+            $table->unsignedBigInteger('address_id');
+            $table->foreign('address_id')->references('id')->on('addresses');
             $table->foreign('owner_id')->references('id')->on('users');
             $table->string('status')->default(1);
             $table->timestamps();
