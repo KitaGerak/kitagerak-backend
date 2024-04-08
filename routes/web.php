@@ -1,7 +1,11 @@
 <?php
 
 use App\Http\Controllers\V1\ImageController;
+use App\Http\Controllers\V1\ScheduleController;
+use App\Http\Controllers\VerifyEmailController;
+use GuzzleHttp\Psr7\Request;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -22,8 +26,13 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return "KitaGerak API";
 });
+
+Route::get('/verified', function () {
+    return "Berhasil verifikasi email! Silahkan kembali ke aplikasi KitaGerak...";
+});
+Route::get('/test', [ScheduleController::class, "generateSchedule"]);
 Route::get('/images/{fileName}', [ImageController::class, "show"]);
 
-Route::get('/email/verify/{id}/{hash}', function(EmailVerificationRequest $request) {
-    $request->fulfill();
-}) ;
+Route::get('/email/verify/{id}/{hash}', [VerifyEmailController::class, '__invoke']);
+
+Auth::routes(['verify' => true]);

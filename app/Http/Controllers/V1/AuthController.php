@@ -32,14 +32,28 @@ class AuthController extends Controller
             $input = $request->all();
     
             $input['password'] = bcrypt($input['password']);
-            $user = User::create($input)->sendEmailVerificationNotification();
-    
+
+            $user = new User();
+            $user->name = $input['name'];
+            $user->email = $input['email'];
+            $user->password = $input['password'];
+            $user->role_id = $input['role_id'];
+
+            if(isset($request->owner_id))
+            {
+                $user->owner_id = $request->owner_id;
+            }
+            $user->status = 1;
+
+            $user->save();
+            // $user = User::create($input);
+            
             $success['token'] = $user->createToken('basic_token', ['view','make_transaction'])->plainTextToken;
             $success['name'] = $user->name;
             $success['id'] = $user->id;
             $success['roleId'] = $user->role_id;
     
-            // event(new Registered($user));
+            event(new Registered($user));
     
             return response()->json([
                 'status' => true,
@@ -61,6 +75,15 @@ class AuthController extends Controller
     public function login(Request $request) {
         if (Auth::attempt(['email' => $request->email, 'password' => $request->password])) {
             $auth = Auth::user();
+
+            if($auth->email_verified_at == null)
+            {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Autentikasi Gagal. Email anda belum terverifikasi!',
+                    'data' => null,
+                ], 422);
+            }
             if ($auth->role_id == 2) {
                 $success['token'] = $auth->createToken('venue_owner_token'.$auth->id, ['view', 'create', 'update', 'delete'])->plainTextToken;
             } else {

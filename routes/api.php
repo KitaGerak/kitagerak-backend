@@ -10,7 +10,8 @@ use App\Http\Controllers\V1\RatingController;
 use App\Http\Controllers\V1\ScheduleController;
 use App\Http\Controllers\V1\TransactionController;
 use App\Http\Controllers\V1\VenueController;
-use App\Http\Controllers\VenueOwnerController;
+use App\Http\Controllers\V1\VenueOwnerController;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -28,8 +29,6 @@ use Illuminate\Support\Facades\Route;
 //     return $request->user();
 // });
 
-Route::post('/venue_owners', [VenueOwnerController::class, 'register']);
-Route::post('/venue_owners/login', [VenueOwnerController::class, 'login']);
 
 Route::group(['prefix' => 'v1'], function() {
 
@@ -103,6 +102,10 @@ Route::group(['prefix' => 'v1'], function() {
             });
         });
 
+        Route::group(['prefix' => 'venue-owner'], function() {
+            Route::get('/get-employees/{ownerId}', [VenueOwnerController::class, "getEmployees"]);
+        });
+
         Route::get('schedules/', [ScheduleController::class, "index"]);
 
     });
@@ -113,3 +116,5 @@ Route::group(['prefix' => 'v1'], function() {
 
 Route::post('/payments/webhook/xendit', [PaymentWebhookController::class, "xenditWebhook"]);
 Route::get('/invoices/{invoiceId}', [InvoiceController::class, "getXenditInvoice"]);
+
+Auth::routes(['verify' => true]);

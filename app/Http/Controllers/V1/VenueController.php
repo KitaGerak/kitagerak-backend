@@ -16,6 +16,7 @@ use App\Models\User;
 use App\Models\Venue;
 use App\Models\VenueImage;
 use App\Services\V1\VenueQuery;
+use Carbon\Carbon;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
@@ -183,6 +184,9 @@ class VenueController extends Controller
                 'owner_id' => $request['owner_id'],
                 'image_url' => $request['image_url'],
                 'address_id' => $address['id'],
+                'open_hour' => Carbon::createFromFormat('H:i:s', '07:00:00'),
+                'close_hour' => Carbon::createFromFormat('H:i:s', '21:00:00'),
+                'interval' => 2,
             ]));
     
         } catch (\Exception $e)
