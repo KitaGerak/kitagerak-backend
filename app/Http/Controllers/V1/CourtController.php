@@ -10,7 +10,9 @@ use App\Http\Resources\V1\CourtCollection;
 use App\Http\Resources\V1\CourtResource;
 use App\Models\Court;
 use App\Models\CourtImage;
+use App\Models\CourtPrice;
 use App\Models\Venue;
+use PDO;
 
 class CourtController extends Controller
 {
@@ -53,11 +55,26 @@ class CourtController extends Controller
         }
     }
 
+    public function storeCourtPrice($request, $courtId)
+    {
+        foreach ($request->prices as $courtPrice) {
+            $newCourtPrice = new CourtPrice();
+            $newCourtPrice->court_id = $courtId;
+            $newCourtPrice->price = $courtPrice['price'];
+            $newCourtPrice->is_member_price = $courtPrice['isMemberPrice'];
+            $newCourtPrice->duration_in_hour = $courtPrice['durationInHour'];
+            $newCourtPrice->save();
+        }
+
+    }
     // StoreCourtRequest
     public function store(StoreCourtRequest $request) {
 
         try {
             $res = Court::create($request->all());
+
+            self::storeCourtPrice($request, $res->id);
+
             $this->uploadImages($request, $res->id);
     
             return new CourtResource(Court::where('id', $res->id)->first());
