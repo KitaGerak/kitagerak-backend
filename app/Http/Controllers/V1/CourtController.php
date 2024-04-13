@@ -19,6 +19,7 @@ class CourtController extends Controller
 
     public function index(Request $request) {
         $court = new Court();
+
         if($request->query('venueId'))
             $court = $court->where("venue_id", $request->query('venueId'));
 
@@ -31,7 +32,7 @@ class CourtController extends Controller
         }
 
         $court = $court->get();
-
+        
         return response()->json(["data" => $court]);
         // return new CourtCollection(Court::paginate(10));
     }
@@ -68,14 +69,14 @@ class CourtController extends Controller
 
     }
     // StoreCourtRequest
-    public function store(StoreCourtRequest $request) {
+    public function store(Request $request) {
 
         try {
             $res = Court::create($request->all());
 
-            self::storeCourtPrice($request, $res->id);
+            // self::storeCourtPrice($request, $res->id);
 
-            $this->uploadImages($request, $res->id);
+            // $this->uploadImages($request, $res->id);
     
             return new CourtResource(Court::where('id', $res->id)->first());
         } catch (\Exception $e)
