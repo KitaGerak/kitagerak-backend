@@ -144,28 +144,28 @@ class VenueController extends Controller
     public function store(Request $request) {
 
         try {
-            if($request->hasFile('venueImages'))
-            {
-                $venueImages = $request->venueImages;
+            // if($request->hasFile('venueImages'))
+            // {
+            //     $venueImages = $request->venueImages;
                 
-                foreach ($venueImages as $file) {
-                    // if($file == null)
-                    //     return response()->json($files);
+            //     foreach ($venueImages as $file) {
+            //         // if($file == null)
+            //         //     return response()->json($files);
 
-                    // $filename = $file->getClientOriginalName();
-                    $extension = $file->getClientOriginalExtension();
+            //         // $filename = $file->getClientOriginalName();
+            //         $extension = $file->getClientOriginalExtension();
     
-                    // $filename = $file->store('venue_images');
-                    $filename = time() . '.' . $file->getClientOriginalExtension();
-                    $path = Storage::disk('public')->put('venue_images', $file);
+            //         // $filename = $file->store('venue_images');
+            //         $filename = time() . '.' . $file->getClientOriginalExtension();
+            //         $path = Storage::disk('public')->put('venue_images', $file);
     
-                    $newVenueImage = new VenueImage();
-                    $newVenueImage->venue_id = 99;
-                    $newVenueImage->url = $path;
-                    $newVenueImage->status = "Active";
-                    $newVenueImage->save();
-                }
-            }
+            //         $newVenueImage = new VenueImage();
+            //         $newVenueImage->venue_id = 99;
+            //         $newVenueImage->url = $path;
+            //         $newVenueImage->status = "Active";
+            //         $newVenueImage->save();
+            //     }
+            // }
 
             $user = User::find($request->owner_id);
 
@@ -193,9 +193,6 @@ class VenueController extends Controller
         {
             return response()->json('Error : ' . $e->getMessage());
         }
-       
-
-       
     }
 
     public function bulkStore(BulkStoreVenueRequest $request) {
