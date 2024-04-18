@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\V1;
 
+use App\Models\CourtPrice;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class ScheduleResource extends JsonResource
@@ -37,7 +38,25 @@ class ScheduleResource extends JsonResource
     }
     public function toArray($request)
     {
-
+        //ADDED
+        $price = [
+            "member" => 0,
+            "daily" => 0,
+            "discountPrice" => NULL,
+        ];
+        if ($this->price == NULL) {
+            $courtPrice = CourtPrice::where('court_id', $this->court_id)->where('duration_in_hour', $this->interval)->get();
+            foreach ($courtPrice as $cp) {
+                if ($cp->is_member_price == 1) {
+                    $price['member'] = $cp->price;
+                } else {
+                    $price['daily'] = $cp->price;
+                }
+            }
+        } else {
+            $price["discountPrice"] = $this->price;
+        }
+        //END-ADDED
 
         return [
             'id' => $this->id,
@@ -46,7 +65,7 @@ class ScheduleResource extends JsonResource
             'timeFinish' => $this->time_finish,
             'interval' => $this->interval,
             'availability' => $this->availability,
-            'price' => $this->price,
+            'price' => $price,
             'status' => $this->status,
             'courtId' => $this->court_id,
         ];

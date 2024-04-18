@@ -8,6 +8,7 @@ use App\Http\Requests\V1\StoreTransactionRequest;
 use App\Http\Requests\V1\UpdateTransactionRequest;
 use App\Http\Resources\V1\TransactionCollection;
 use App\Http\Resources\V1\TransactionResource;
+use App\Models\CourtPrice;
 use App\Models\Fee;
 use App\Models\Schedule;
 use App\Models\Transaction;
@@ -15,6 +16,10 @@ use App\Models\TransactionScheduleDetail;
 use App\Models\TransactionStatus;
 use App\Models\User;
 use App\Services\V1\TransactionQuery;
+use DateInterval;
+use DateTime;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 
 class TransactionController extends Controller
@@ -66,196 +71,111 @@ class TransactionController extends Controller
         ], 422);
     }
 
-    public function store(StoreTransactionRequest $request) {
-        $schedule = Schedule::where('id', $request->scheduleId)->first();
+    private function xenditPayment($externalId, $user, $schedule, $fee) {
+        //XENDIT HERE
+        $xenditParams = [
+            'external_id' => $externalId,
+            'payer_email' => $user->email,
+            'description' => "Pembayaran Penyewaan Lapangan pada " . $schedule->date,
+            'amount' => $schedule->price + $fee,
+            'success_redirect_url' => url(env('APP_HOST') . "/payment-success"),
+            'failed_redirect_url' => url(env('APP_HOST') . "/payment-failed"),
+            'invoice_duration' => 18000, // 5 hours
+            'currency' => "IDR",
+            "customer" => [
+                "given_names" => $user->name,
+                "surname" => $user->name,
+                "email" => $user->email,
+                "mobile_number" => "+62" . $user->phone_number,
+                // "addresses" => [
+                //     [
+                //         "city" => "Jakarta Selatan",
+                //         "country" => "Indonesia",
+                //         "postal_code" => "12345",
+                //         "state" => "Daerah Khusus Ibukota Jakarta",
+                //         "street_line1" => "Jalan Makan",
+                //         "street_line2" => "Kecamatan Kebayoran Baru"
+                //     ]
+                // ]
+            ],
+            "customer_notification_preference" => [
+                "invoice_created" => [
+                    // "whatsapp",
+                    "email",
+                ],
+                "invoice_reminder" => [
+                    // "whatsapp",
+                    "email",
+                ],
+                "invoice_paid" => [
+                    "whatsapp",
+                    "email",
+                ],
+                "invoice_expired" => [
+                    // "whatsapp",
+                    "email",
+                ]
+            ],
+            "fees" => [
+                [
+                    "type" => "Jasa Aplikasi",
+                    "value" => $fee,
+                ]
+            ]
+        ];
 
-        if ($schedule->availability == 0 || $schedule->status == 0) {
-            return response()->json([
-                'message' => "Unavailable Schedule",
-            ]);
-        }
+        $response = Http::withHeaders([
+            "Authorization" =>"Basic ".base64_encode(env("XENDIT_API_KEY", "") .':' . '')
+        ])->
+        post('https://api.xendit.co/v2/invoices/', $xenditParams);
 
-        $user = User::where('id', $request->userId)->first();
-        $fee = Fee::where('name', 'app_admin')->first()->amount_rp;
-
-        // //XENDIT HERE
-        // $xenditParams = [
-        //     'external_id' => $request->externalId,
-        //     'payer_email' => $user->email,
-        //     'description' => "Pembayaran Penyewaan Lapangan pada " . $schedule->date,
-        //     'amount' => $schedule->price + $fee,
-        //     //TODO:: Nunggu domain
-        //     'success_redirect_url' => url("https://www.google.com"),
-        //     'failed_redirect_url' => url("https://www.google.com"),
-        //     'invoice_duration' => 18000, // 5 hours
-        //     'currency' => "IDR",
-        //     "customer" => [
-        //         "given_names" => $user->name,
-        //         "surname" => $user->name,
-        //         "email" => $user->email,
-        //         "mobile_number" => "+62" . $user->phone_number,
-        //         // "addresses" => [
-        //         //     [
-        //         //         "city" => "Jakarta Selatan",
-        //         //         "country" => "Indonesia",
-        //         //         "postal_code" => "12345",
-        //         //         "state" => "Daerah Khusus Ibukota Jakarta",
-        //         //         "street_line1" => "Jalan Makan",
-        //         //         "street_line2" => "Kecamatan Kebayoran Baru"
-        //         //     ]
-        //         // ]
-        //     ],
-        //     "customer_notification_preference" => [
-        //         "invoice_created" => [
-        //             // "whatsapp",
-        //             "email",
-        //         ],
-        //         "invoice_reminder" => [
-        //             // "whatsapp",
-        //             "email",
-        //         ],
-        //         "invoice_paid" => [
-        //             "whatsapp",
-        //             "email",
-        //         ],
-        //         "invoice_expired" => [
-        //             // "whatsapp",
-        //             "email",
-        //         ]
-        //     ],
-        //     "fees" => [
-        //         [
-        //             "type" => "Jasa Aplikasi",
-        //             "value" => $fee,
-        //         ]
-        //     ]
-        // ];
-
-        // $response = Http::withHeaders([
-        //     "Authorization" =>"Basic ".base64_encode(env("XENDIT_API_KEY", "") .':' . '')
-        // ])->
-        // post('https://api.xendit.co/v2/invoices/', $xenditParams);
-
-        // if (!$response->successful()) {
-        //     // return redirect()->intended('/checkout-failed');
-        //     return response()->json([
-        //         "message" => "Payment Failed because system error",
-        //     ], 500);
-        // }
-        // //XENDIT UNTIL HERE
-
-        $transaction = Transaction::create($request->all());
-        $transaction->amount_rp = $schedule->price;
-        $transaction->transaction_status_id = 5; // menunggu konfirmasi / pembayaran
-
-        // // XENDIT HERE
-        // $transaction->checkout_link = $response->collect()['invoice_url'];
-        // $transaction->invoice_id = $response->collect()['id'];
-        // // UNTIL HERE
-
-        $transaction->save();
-
-        // $res = new TransactionResource($transaction); //UNUSED LINE
-        $schedule->availability = "0";
-        $schedule->save();
-        
-        return true;
+        return $response;
     }
 
-    public function bulkStore(Request $request) {
-        if (isset($request->externalId) && isset($request->userId) && isset($request->scheduleId)) {
+    public function store(StoreTransactionRequest $request) {
+        
+        if (isset($request->userId) && isset($request->scheduleId)) {
+            
             if (!is_array($request->scheduleId)) {
                 return response()->json([
+                    "status" => false,
                     "message" => "schedule ID must be array of integer",
                 ], 500);
             }
-            $amount_rp = 0;
-            foreach($request->scheduleId as $scheduleId) {
-                $schedule = Schedule::where('id', $scheduleId)->where('status', '<>', 0)->where('availability', '<>', 0)->first();
-                if ($schedule == null) {
+
+            $totalPrice = 0;
+            foreach ($request->scheduleId as $scheduleId) {
+                $schedule = Schedule::where('id', $scheduleId)->first();
+                
+                $courtPrice = CourtPrice::where('court_id', $schedule->court_id)->where('duration_in_hour', $schedule->interval)->where('is_member_price', 1)->first()['price'];
+                $totalPrice += $courtPrice;
+                
+                if ($schedule->availability == 0 || $schedule->status == 0) {
                     return response()->json([
-                        "message" => "1 or more schedule is unavailable",
+                        "status" => false,
+                        "message" => "Lapangan pada tanggal " . $schedule->time_start . " hingga " . $schedule->time_finish . " sedang tidak tersedia",
                     ], 500);
                 }
-                $amount_rp += $schedule->price;
             }
 
             $user = User::where('id', $request->userId)->first();
             $fee = Fee::where('name', 'app_admin')->first()->amount_rp;
+            $externalId = "DAILY_" . time();
 
-            // // XENDIT HERE
-            // $xenditParams = [
-            //     'external_id' => $request->externalId,
-            //     'payer_email' => $user->email,
-            //     'description' => "Pembayaran Penyewaan Lapangan pada " . $schedule->date,
-            //     'amount' => $schedule->price + $fee,
-            //     //TODO:: nunggu domain
-            //     'success_redirect_url' => url("https://www.google.com"),
-            //     'failed_redirect_url' => url("https://www.google.com"),
-            //     'invoice_duration' => 18000, // 5 hours
-            //     'currency' => "IDR",
-            //     "customer" => [
-            //         "given_names" => $user->name,
-            //         "surname" => $user->name,
-            //         "email" => $user->email,
-            //         "mobile_number" => "+62" . $user->phone_number,
-            //         // "addresses" => [
-            //         //     [
-            //         //         "city" => "Jakarta Selatan",
-            //         //         "country" => "Indonesia",
-            //         //         "postal_code" => "12345",
-            //         //         "state" => "Daerah Khusus Ibukota Jakarta",
-            //         //         "street_line1" => "Jalan Makan",
-            //         //         "street_line2" => "Kecamatan Kebayoran Baru"
-            //         //     ]
-            //         // ]
-            //     ],
-            //     "customer_notification_preference" => [
-            //         "invoice_created" => [
-            //             // "whatsapp",
-            //             "email",
-            //         ],
-            //         "invoice_reminder" => [
-            //             // "whatsapp",
-            //             "email",
-            //         ],
-            //         "invoice_paid" => [
-            //             "whatsapp",
-            //             "email",
-            //         ],
-            //         "invoice_expired" => [
-            //             // "whatsapp",
-            //             "email",
-            //         ]
-            //     ],
-            //     //TODO :: Fees
-            //     "fees" => [
-            //         [
-            //             "type" => "Jasa Aplikasi",
-            //             "value" => $fee,
-            //         ]
-            //     ]
-            // ];
-    
-            // $response = Http::withHeaders([
-            //     "Authorization" =>"Basic ".base64_encode(env("XENDIT_API_KEY", "") .':' . '')
-            // ])->
-            // post('https://api.xendit.co/v2/invoices/', $xenditParams);
-    
-            // if (!$response->successful()) {
-            //     // return redirect()->intended('/checkout-failed');
-            //     return response()->json([
-            //         "message" => "Payment Failed because system error",
-            //     ], 500);
-            // }
-            // // XENDIT UNTIL HERE
+            $xenditResponse = $this->xenditPayment($externalId, $user, $schedule, $fee);
+            if (!$xenditResponse->successful()) {
+                return response()->json([
+                    "status" => false,
+                    "message" => "Payment failed because system error",
+                ], 500);
+            }
 
             $transaction = Transaction::create([
-                "external_id" => $request->externalId,
+                "external_id" => $externalId,
                 "user_id" => $request->userId,
                 "transaction_status_id" => 5, // menunggu konfirmasi / pembayaran
-                "amount_rp" => $amount_rp,
-                "schedule_id" => $request->scheduleId[1],
+                "amount_rp" => $totalPrice + $fee,
+                "schedule_id" => $request->scheduleId[0],
 
                 // // XENDIT HERE
                 // "checkout_link" => $response->collect()['invoice_url'],
@@ -274,19 +194,180 @@ class TransactionController extends Controller
             }
         } else {
             return response()->json([
-                "message" => "Required Parameter: External ID, User ID, schedule ID"
+                "status" => false,
+                "message" => "Required Parameter: user ID, schedule IDs"
             ], 500);
         }
 
-        return true;
+        return response()->json([
+            "status" => true,
+            "message" => "Sukses melakukan pemesanan. Silakan lanjutkan pembayaran"
+        ]);
+
+    }
+
+    public function bulkStore(Request $request) { //UNTUK DAFTAR MEMBER
+        if (isset($request->userId) && isset($request->scheduleId) && isset($request->dateStart) && isset($request->month)) {
+            // Month = berapa bulan
+            // Kalau month = 1 --> (1)*4 -> supaya dapat 4 minggu
+
+            if (!is_array($request->scheduleId)) {
+                return response()->json([
+                    "status" => false,
+                    "message" => "schedule ID must be array of integer",
+                ], 500);
+            }
+
+            $times = [];
+            foreach($request->scheduleId as $scheduleId) {
+                $schedule = Schedule::where('id', $scheduleId)->select(DB::raw("*, DAYOFWEEK(date) AS day_of_week"))->first();
+                $courtId = $schedule->court_id;
+                $dayOfWeek = $schedule->day_of_week;
+                array_push($times, [
+                    "timeStart" => $schedule->time_start,
+                    "timeFinish" => $schedule->time_finish,
+                ]);
+            }
+
+            $query = "(";
+            foreach ($times as $i=>$time) {
+                if ($i == 0) {
+                    $query .= "(time_start = '". $time['timeStart'] . "' AND time_finish = '" . $time['timeFinish'] . "')";
+                } else {
+                    $query .= "OR (time_start = '". $time['timeStart'] ."' AND time_finish = '" . $time['timeFinish'] . "')";
+                }
+            }
+            $query .= ")";
+            
+            $schedules = DB::select(DB::raw("SELECT *, DAYOFWEEK(date) AS day_of_week FROM `schedules` WHERE availability = 1 AND status = 1 AND court_id = $courtId AND $query AND date >= '$request->dateStart' HAVING day_of_week = $dayOfWeek ORDER BY date"));
+
+            if (count($schedules) == 0) {
+                return response()->json([
+                    'status' => false,
+                    'message' => "Tidak ada jadwal tersedia"
+                ], 500);
+            }
+
+            $co = 0;
+            $coMonth = 0;
+            $prev = "";
+            $validSchedIds = [];
+            $totalPrice = 0;
+
+            foreach($schedules as $schedule) {
+                if ($prev == "" || $prev == $schedule->date) {
+                    $co++;
+                    array_push($validSchedIds, $schedule->id);
+                    $courtPrice = CourtPrice::where('court_id', $schedule->court_id)->where('duration_in_hour', $schedule->interval)->where('is_member_price', 1)->first()['price'];
+                    $totalPrice += $courtPrice;
+                } else {
+                    if ($co == count($times)) {
+                        $co = 1;
+                        array_push($validSchedIds, $schedule->id);
+                        $courtPrice = CourtPrice::where('court_id', $schedule->court_id)->where('duration_in_hour', $schedule->interval)->where('is_member_price', 1)->first()['price'];
+                        $totalPrice += $courtPrice;
+                        $coMonth++;
+                        if ($coMonth == $request->month * 4) {
+                            break;
+                        }
+                    } else {
+                        return response()->json([
+                            'status' => false,
+                            'message' => "Gagal! Pada tanggal " . $prev . " tidak ada jam yang tersedia"
+                        ], 500);
+                    }
+                }
+                $prev = $schedule->date;
+            }
+
+            $user = User::where('id', $request->userId)->first();
+            $fee = Fee::where('name', 'app_admin')->first()->amount_rp;
+            $externalId = "MEMBER_" . time();
+
+            $xenditResponse = $this->xenditPayment($externalId, $user, $schedule, $fee);
+            if (!$xenditResponse->successful()) {
+                return response()->json([
+                    "status" => false,
+                    "message" => "Payment failed because system error",
+                ], 500);
+            }
+            
+            $transaction = Transaction::create([
+                "external_id" => $externalId,
+                "user_id" => $request->userId,
+                "transaction_status_id" => 5, // menunggu konfirmasi / pembayaran
+                "amount_rp" => $totalPrice + $fee,
+                "schedule_id" => $validSchedIds[0],
+
+                // // XENDIT HERE
+                // "checkout_link" => $response->collect()['invoice_url'],
+                // "invoice_id" => $response->collect()['id'],
+                // // UNTIL HERE
+
+            ]);
+            foreach($validSchedIds as $scheduleId) {
+                TransactionScheduleDetail::create([
+                    "schedule_id" => $scheduleId,
+                    "transaction_id" => $transaction->id,
+                ]);
+                Schedule::where('id', $scheduleId)->update([
+                    'availability' => 0,
+                ]);
+            }
+        } else {
+            return response()->json([
+                "status" => false,
+                "message" => "Required Parameter: user ID, schedule IDs, date start, and month"
+            ], 500);
+        }
+
+        return response()->json([
+            "status" => true,
+            "message" => "Sukses melakukan pemesanan. Silakan lanjutkan pembayaran"
+        ]);
     }
 
     public function update(UpdateTransactionRequest $request, Transaction $transaction) {
         $transaction->update($request->all());
-        if ($request->transactionStatusId == 2 || $request->transactionStatusId == 3 || $request->transactionStatusId == 4) {
-            Schedule::where('id', $transaction->scheduleId)->update([
-                'availability' => '1'
-            ]);
+
+        if (auth('sanctum')->check()){
+            $userIdAuth = auth('sanctum')->user();
+            if ($userIdAuth->id == $transaction->user_id) { 
+                //check
+                $dt = new DateTime();
+                $dt->add(new DateInterval('P1D'));
+                if (strtotime($transaction->schedule->date . " " . $transaction->schedule->time_start) > strtotime($dt->format('Y-m-d H:i:s'))) {
+                    if ($request->transactionStatusId == 2 || $request->transactionStatusId == 3 || $request->transactionStatusId == 4) {
+                        Schedule::where('id', $transaction->scheduleId)->update([
+                            'availability' => '1'
+                        ]);
+                    }
+                    return 1; 
+                };
+
+                return response()->json([
+                    "status" => false,
+                    "message" => "Pembatalan ditolak karena pembatalan harus lebih dari 24 jam sebelumnya"
+                ]);
+            } elseif ($userIdAuth->roleId == 4) { // 4 == Admin -- tidak ada cek.
+                if ($request->transactionStatusId == 2 || $request->transactionStatusId == 3 || $request->transactionStatusId == 4) {
+                    Schedule::where('id', $transaction->scheduleId)->update([
+                        'availability' => '1'
+                    ]);
+                }
+                return 1;
+            } 
+
+            return response()->json([
+                "status" => false,
+                "message" => "Unauthorized"
+            ], 403);
+
+        } else {
+            return response()->json([
+                "status" => false,
+                "message" => "Unauthenticated"
+            ], 403);
         }
     }
 

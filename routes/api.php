@@ -67,6 +67,9 @@ Route::group(['prefix' => 'v1'], function() {
         });
 
         Route::group(['prefix' => 'schedules'], function() {
+            //MOVED
+            Route::get('/', [ScheduleController::class, "index"]);
+            //END-MOVED
             Route::post('/', [ScheduleController::class, "store"]);
             Route::post('/bulkStore', [ScheduleController::class, "bulkStore"]);
             Route::put('/{schedule:id}', [ScheduleController::class, "update"]);
@@ -106,8 +109,6 @@ Route::group(['prefix' => 'v1'], function() {
         Route::group(['prefix' => 'venue-owner'], function() {
             Route::get('/get-employees/{ownerId}', [VenueOwnerController::class, "getEmployees"]);
         });
-
-        Route::get('schedules/', [ScheduleController::class, "index"]);
 
     });
 

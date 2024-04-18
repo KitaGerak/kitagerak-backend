@@ -37,3 +37,13 @@ Route::get('/email/verify/{id}/{hash}', [VerifyEmailController::class, '__invoke
 
 Auth::routes(['verify' => true]);
 Route::get('/images/{folder}/{fileName?}', [ImageController::class, "show"]);
+
+Route::get('/payment-success', function() {
+    //TODO:: Create an UI
+    return "Pembayaran Berhasil";
+});
+
+Route::get('/payment-failed', function() {
+    //TODO:: Create an UI
+    return "Pembayaran Gagal";
+});
