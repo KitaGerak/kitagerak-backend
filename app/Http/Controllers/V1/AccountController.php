@@ -4,7 +4,7 @@ namespace App\Http\Controllers\V1;
 
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
-use App\Http\Resources\UserResource;
+use App\Http\Resources\V1\UserResource;
 use App\Models\User;
 
 class AccountController extends Controller
