@@ -35,6 +35,7 @@ Route::group(['prefix' => 'v1'], function() {
     Route::group(['prefix' => 'venues'], function() {
         Route::get('/', [VenueController::class, "index"]);
         Route::get('/{venue:id}', [VenueController::class, "show"]);
+        Route::get('fetchImages/{venue:id}', [VenueController::class, "fetchImage"]);
         Route::post('/', [VenueController::class, "store"]);
 
     });

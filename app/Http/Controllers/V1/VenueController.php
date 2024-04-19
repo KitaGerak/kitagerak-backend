@@ -17,6 +17,7 @@ use App\Models\Venue;
 use App\Models\VenueImage;
 use App\Services\V1\VenueQuery;
 use Carbon\Carbon;
+use Exception;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
@@ -115,13 +116,26 @@ class VenueController extends Controller
         // }
     }
 
-    public function show(Venue $venue, Request $request) {
-        $includeCourts = $request->query('includeCourts');
+    public function fetchImage(Venue $venue)
+    {
+        $venueImages = VenueImage::where('venue_id', $venue->id)->get();
+        $venueImages = $venueImages->pluck('url');
+        return response()->json(["data"=>$venueImages]);
+    }
 
-        if ($includeCourts) {
-            return new VenueResource($venue->loadMissing('courts'));
+    public function show(Venue $venue, Request $request) {
+        try {
+            $includeCourts = $request->query('includeCourts');
+    
+            if ($includeCourts) {
+                return new VenueResource($venue->loadMissing('courts'));
+            }
+
+            return new VenueResource($venue);
+        } catch (Exception $e)
+        {
+            return response()->json($e->getMessage());
         }
-        return new VenueResource($venue);
     }
 
     public function update(UpdateVenueRequest $request, Venue $venue) {
@@ -144,28 +158,7 @@ class VenueController extends Controller
     public function store(Request $request) {
 
         try {
-            // if($request->hasFile('venueImages'))
-            // {
-            //     $venueImages = $request->venueImages;
-                
-            //     foreach ($venueImages as $file) {
-            //         // if($file == null)
-            //         //     return response()->json($files);
-
-            //         // $filename = $file->getClientOriginalName();
-            //         $extension = $file->getClientOriginalExtension();
-    
-            //         // $filename = $file->store('venue_images');
-            //         $filename = time() . '.' . $file->getClientOriginalExtension();
-            //         $path = Storage::disk('public')->put('venue_images', $file);
-    
-            //         $newVenueImage = new VenueImage();
-            //         $newVenueImage->venue_id = 99;
-            //         $newVenueImage->url = $path;
-            //         $newVenueImage->status = "Active";
-            //         $newVenueImage->save();
-            //     }
-            // }
+           
 
             $user = User::find($request->owner_id);
 
@@ -179,7 +172,7 @@ class VenueController extends Controller
                 'longitude' => $request['address']['longitude'],
                 'latitude' => $request['address']['latitude'],
             ]);
-            return new VenueResource(Venue::create([
+            $venue = new VenueResource(Venue::create([
                 'name' => $request['name'],
                 'owner_id' => $request['owner_id'],
                 'image_url' => $request['image_url'],
@@ -188,6 +181,31 @@ class VenueController extends Controller
                 'close_hour' => Carbon::createFromFormat('H:i:s', '21:00:00'),
                 'interval' => 2,
             ]));
+
+            if($request->hasFile('venueImages'))
+            {
+                $venueImages = $request->venueImages;
+                
+                foreach ($venueImages as $file) {
+                    // if($file == null)
+                    //     return response()->json($files);
+
+                    // $filename = $file->getClientOriginalName();
+                    $extension = $file->getClientOriginalExtension();
+    
+                    // $filename = $file->store('venue_images');
+                    $filename = time() . '.' . $file->getClientOriginalExtension();
+                    $path = Storage::disk('public')->put('venue_images', $file);
+    
+                    $newVenueImage = new VenueImage();
+                    $newVenueImage->venue_id = $venue['id'];
+                    $newVenueImage->url = $path;
+                    $newVenueImage->status = "Active";
+                    $newVenueImage->save();
+                }
+            }
+
+            return $venue;
     
         } catch (\Exception $e)
         {

@@ -14,6 +14,7 @@ class ImageController extends Controller
         } else {
             $path = "private/images/$folder/$fileName";
         }
+        
 
         if (Storage::exists($path)) {
             // if ($this->middleware('auth') && $this->middleware('is.admin')) {

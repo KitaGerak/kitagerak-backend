@@ -17,7 +17,10 @@ class Venue extends Model
     public function courts() {
         return $this->hasMany(Court::class)->where('courts.status', '<>', '0');
     }
-    
+
+    public function venueImages() {
+        return $this->hasMany(VenueImage::class, 'venue_id');
+    }
 
     public function address() {
         return $this->belongsTo(Address::class);

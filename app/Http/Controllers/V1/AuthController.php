@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 
 class AuthController extends Controller
@@ -33,11 +34,25 @@ class AuthController extends Controller
     
             $input['password'] = bcrypt($input['password']);
 
+            
+            if($request->hasFile('ktpImage'))
+            {
+                $ktpImage = $request->ktpImage;
+                
+                $extension = $ktpImage->getClientOriginalExtension();
+
+                $filename = time() . '.' . $ktpImage->getClientOriginalExtension();
+                $path = Storage::disk('public')->put('ktp_images', $ktpImage);
+
+                $input['photo_url'] = $path;
+            }
+
             $user = new User();
             $user->name = $input['name'];
             $user->email = $input['email'];
             $user->password = $input['password'];
             $user->role_id = $input['role_id'];
+            $user->photo_url = $input['photo_url'];
 
             if(isset($request->owner_id))
             {
@@ -72,9 +87,23 @@ class AuthController extends Controller
         $input = $request->all();
 
         $input['password'] = bcrypt($input['password']);
+
+        if($request->hasFile('ktpImage'))
+        {
+            $ktpImage = $request->ktpImage;
+            
+            $extension = $ktpImage->getClientOriginalExtension();
+
+            $filename = time() . '.' . $ktpImage->getClientOriginalExtension();
+            $path = Storage::disk('public')->put('ktp_images', $ktpImage);
+
+            $input['photo_url'] = $path;
+        }
+
         $user = User::create($input);
 
         $success['token'] = $user->createToken('basic_token', ['view','make_transaction'])->plainTextToken;
+        $success['nik'] = $user->nik;
         $success['name'] = $user->name;
         $success['id'] = $user->id;
         $success['roleId'] = $user->role_id;
