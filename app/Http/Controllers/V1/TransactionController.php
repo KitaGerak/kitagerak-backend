@@ -162,13 +162,13 @@ class TransactionController extends Controller
             $fee = Fee::where('name', 'app_admin')->first()->amount_rp;
             $externalId = "DAILY_" . time();
 
-            $xenditResponse = $this->xenditPayment($externalId, $user, $schedule, $fee);
-            if (!$xenditResponse->successful()) {
-                return response()->json([
-                    "status" => false,
-                    "message" => "Payment failed because system error",
-                ], 500);
-            }
+            // $xenditResponse = $this->xenditPayment($externalId, $user, $schedule, $fee);
+            // if (!$xenditResponse->successful()) {
+            //     return response()->json([
+            //         "status" => false,
+            //         "message" => "Payment failed because system error",
+            //     ], 500);
+            // }
 
             $transaction = Transaction::create([
                 "external_id" => $externalId,
@@ -207,22 +207,30 @@ class TransactionController extends Controller
     }
 
     public function bulkStore(Request $request) { //UNTUK DAFTAR MEMBER
-        if (isset($request->userId) && isset($request->scheduleId) && isset($request->dateStart) && isset($request->month)) {
+        if (isset($request->userId) && isset($request->scheduleId) && isset($request->dateStart) && isset($request->month) && isset($request->dayOfWeek)) {
             // Month = berapa bulan
             // Kalau month = 1 --> (1)*4 -> supaya dapat 4 minggu
 
             if (!is_array($request->scheduleId)) {
                 return response()->json([
                     "status" => false,
-                    "message" => "schedule ID must be array of integer",
+                    "message" => "Schedule ID must be array of integer",
+                ], 500);
+            }
+
+            if (!is_array($request->dayOfWeek)) {
+                return response()->json([
+                    "status" => false,
+                    "message" => "Day of wekk must be array of integer",
                 ], 500);
             }
 
             $times = [];
             foreach($request->scheduleId as $scheduleId) {
-                $schedule = Schedule::where('id', $scheduleId)->select(DB::raw("*, DAYOFWEEK(date) AS day_of_week"))->first();
+                // ->select(DB::raw("*, DAYOFWEEK(date) AS day_of_week"))
+                $schedule = Schedule::where('id', $scheduleId)->first();
                 $courtId = $schedule->court_id;
-                $dayOfWeek = $schedule->day_of_week;
+                
                 array_push($times, [
                     "timeStart" => $schedule->time_start,
                     "timeFinish" => $schedule->time_finish,
@@ -238,8 +246,19 @@ class TransactionController extends Controller
                 }
             }
             $query .= ")";
+
+            $queryHaving = "(";
+            foreach ($request->dayOfWeek as $i => $dayOfWeek) {
+                if ($i == 0) {
+                    $queryHaving .= "(day_of_week = $dayOfWeek)";
+                } else {
+                    $queryHaving .= "OR (day_of_week = $dayOfWeek)";
+                }
+            }
+            $queryHaving .= ")";
             
-            $schedules = DB::select(DB::raw("SELECT *, DAYOFWEEK(date) AS day_of_week FROM `schedules` WHERE availability = 1 AND status = 1 AND court_id = $courtId AND $query AND date >= '$request->dateStart' HAVING day_of_week = $dayOfWeek ORDER BY date"));
+            // $schedules = DB::select(DB::raw("SELECT *, DAYOFWEEK(date) AS day_of_week FROM `schedules` WHERE availability = 1 AND status = 1 AND court_id = $courtId AND $query AND date >= '$request->dateStart' HAVING day_of_week = $dayOfWeek ORDER BY date"));
+            $schedules = DB::select(DB::raw("SELECT *, DAYOFWEEK(date) AS day_of_week FROM `schedules` WHERE availability = 1 AND status = 1 AND court_id = $courtId AND $query AND date >= '$request->dateStart' HAVING $queryHaving ORDER BY date"));
 
             if (count($schedules) == 0) {
                 return response()->json([
@@ -284,13 +303,13 @@ class TransactionController extends Controller
             $fee = Fee::where('name', 'app_admin')->first()->amount_rp;
             $externalId = "MEMBER_" . time();
 
-            $xenditResponse = $this->xenditPayment($externalId, $user, $schedule, $fee);
-            if (!$xenditResponse->successful()) {
-                return response()->json([
-                    "status" => false,
-                    "message" => "Payment failed because system error",
-                ], 500);
-            }
+            // $xenditResponse = $this->xenditPayment($externalId, $user, $schedule, $fee);
+            // if (!$xenditResponse->successful()) {
+            //     return response()->json([
+            //         "status" => false,
+            //         "message" => "Payment failed because system error",
+            //     ], 500);
+            // }
             
             $transaction = Transaction::create([
                 "external_id" => $externalId,
