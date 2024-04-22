@@ -153,7 +153,7 @@ class TransactionController extends Controller
                 if ($schedule->availability == 0 || $schedule->status == 0) {
                     return response()->json([
                         "status" => false,
-                        "message" => "Lapangan pada tanggal " . $schedule->time_start . " hingga " . $schedule->time_finish . " sedang tidak tersedia",
+                        "message" => "Lapangan pada tanggal " . $this->tgl_indo($schedule->date) . " pukul " . $schedule->time_start . " hingga " . $schedule->time_finish . " sedang tidak tersedia",
                     ], 500);
                 }
             }
@@ -206,97 +206,132 @@ class TransactionController extends Controller
 
     }
 
+    private function getAvailMemberSchedules($request, $courtId) {
+        $query = "SELECT *, DAYOFWEEK(date) AS day_of_week FROM `schedules` WHERE availability = 1 AND status = 1 AND court_id = $courtId AND date >= '$request->dateStart' HAVING ";
+        $query .= "(";
+        foreach ($request->schedules as $i=>$requestSchedule) {
+            $query .= "(day_of_week = " . $requestSchedule['dayOfWeek'] . " AND ";
+            
+            $query2 = "";
+            foreach($requestSchedule['scheduleIds'] as $j => $scheduleId) {
+
+                $schedule = Schedule::where('id', $scheduleId)->first();
+                
+                $query2 .= "date in (SELECT DISTINCT date FROM `schedules` WHERE time_start = '$schedule->time_start' AND time_finish = '$schedule->time_finish' AND availability = 1 AND status = 1)";
+
+                if ($j != count($requestSchedule['scheduleIds']) - 1) {
+                    $query2 .= " AND ";
+                }
+            }
+
+            $query .= $query2;
+
+            if ($i < count($requestSchedule) - 1) {
+                $query .= ") OR ";
+            } else {
+                $query .= ")";
+            }
+        }
+        $query .= ")";
+        $query .= " ORDER BY date";
+
+        return DB::select(DB::raw($query));
+    }
+
+    private function getUnAvailMemberSchedules($request, $courtId) {
+        $query = "SELECT DISTINCT court_id, date, DAYOFWEEK(date) AS day_of_week FROM `schedules` WHERE court_id = $courtId AND date >= '$request->dateStart' HAVING ";
+        $query .= "(";
+        foreach ($request->schedules as $i=>$requestSchedule) {
+            $query .= "(day_of_week = " . $requestSchedule['dayOfWeek'] . " AND ";
+            
+            $query2 = "(";
+            foreach($requestSchedule['scheduleIds'] as $j => $scheduleId) {
+
+                $schedule = Schedule::where('id', $scheduleId)->first();
+                
+                $query2 .= "date NOT IN (SELECT DISTINCT date FROM `schedules` WHERE time_start = '$schedule->time_start' AND time_finish = '$schedule->time_finish' AND availability = 1 AND status = 1)";
+
+                if ($j != count($requestSchedule['scheduleIds']) - 1) {
+                    $query2 .= " OR ";
+                }
+            }
+
+            $query2 .= ")";
+
+            $query .= $query2;
+
+            if ($i < count($requestSchedule) - 1) {
+                $query .= ") OR ";
+            } else {
+                $query .= ")";
+            }
+        }
+        $query .= ")";
+        $query .= " ORDER BY date";
+
+        return DB::select(DB::raw($query));
+    }
+
+    private function tgl_indo($tanggal)
+    {
+        $bulan = array(
+            1 =>   'Januari',
+            'Februari',
+            'Maret',
+            'April',
+            'Mei',
+            'Juni',
+            'Juli',
+            'Agustus',
+            'September',
+            'Oktober',
+            'November',
+            'Desember'
+        );
+        $pecahkan = explode('-', $tanggal);
+        return $pecahkan[2] . ' ' . $bulan[(int)$pecahkan[1]] . ' ' . $pecahkan[0];
+    }
+
     public function bulkStore(Request $request) { //UNTUK DAFTAR MEMBER
-        if (isset($request->userId) && isset($request->scheduleId) && isset($request->dateStart) && isset($request->month) && isset($request->dayOfWeek)) {
+        if (isset($request->userId) && isset($request->schedules) && isset($request->dateStart) && isset($request->month)) {
             // Month = berapa bulan
             // Kalau month = 1 --> (1)*4 -> supaya dapat 4 minggu
 
-            if (!is_array($request->scheduleId)) {
+            if (!is_array($request->schedules)) {
                 return response()->json([
                     "status" => false,
                     "message" => "Schedule ID must be array of integer",
                 ], 500);
             }
 
-            if (!is_array($request->dayOfWeek)) {
-                return response()->json([
-                    "status" => false,
-                    "message" => "Day of wekk must be array of integer",
-                ], 500);
-            }
+            $schedule1 = Schedule::where('id', $request->schedules[0]['scheduleIds'][0])->first();
+            $courtId = $schedule1->court_id;
 
-            $times = [];
-            foreach($request->scheduleId as $scheduleId) {
-                // ->select(DB::raw("*, DAYOFWEEK(date) AS day_of_week"))
-                $schedule = Schedule::where('id', $scheduleId)->first();
-                $courtId = $schedule->court_id;
-                
-                array_push($times, [
-                    "timeStart" => $schedule->time_start,
-                    "timeFinish" => $schedule->time_finish,
+            $unavailableSchedule = $this->getUnavailMemberSchedules($request, $courtId);
+            $unavailableScheduleDate = "";
+            
+            if (count($unavailableSchedule) > 0) {
+                foreach ($unavailableSchedule as $k => $sched) {
+                    $unavailableScheduleDate .= $this->tgl_indo($sched->date);
+                    if ($k != count($unavailableSchedule) - 1) {
+                        $unavailableScheduleDate .= ", ";
+                    }
+                }
+
+                return response()->json([
+                    'status' => false,
+                    'message' => "Jadwal pada " . $unavailableScheduleDate . " sedang tidak tersedia"
                 ]);
             }
 
-            $query = "(";
-            foreach ($times as $i=>$time) {
-                if ($i == 0) {
-                    $query .= "(time_start = '". $time['timeStart'] . "' AND time_finish = '" . $time['timeFinish'] . "')";
-                } else {
-                    $query .= "OR (time_start = '". $time['timeStart'] ."' AND time_finish = '" . $time['timeFinish'] . "')";
-                }
-            }
-            $query .= ")";
 
-            $queryHaving = "(";
-            foreach ($request->dayOfWeek as $i => $dayOfWeek) {
-                if ($i == 0) {
-                    $queryHaving .= "(day_of_week = $dayOfWeek)";
-                } else {
-                    $queryHaving .= "OR (day_of_week = $dayOfWeek)";
-                }
-            }
-            $queryHaving .= ")";
-            
-            // $schedules = DB::select(DB::raw("SELECT *, DAYOFWEEK(date) AS day_of_week FROM `schedules` WHERE availability = 1 AND status = 1 AND court_id = $courtId AND $query AND date >= '$request->dateStart' HAVING day_of_week = $dayOfWeek ORDER BY date"));
-            $schedules = DB::select(DB::raw("SELECT *, DAYOFWEEK(date) AS day_of_week FROM `schedules` WHERE availability = 1 AND status = 1 AND court_id = $courtId AND $query AND date >= '$request->dateStart' HAVING $queryHaving ORDER BY date"));
-
-            if (count($schedules) == 0) {
-                return response()->json([
-                    'status' => false,
-                    'message' => "Tidak ada jadwal tersedia"
-                ], 500);
-            }
-
-            $co = 0;
-            $coMonth = 0;
-            $prev = "";
-            $validSchedIds = [];
+            $availableSchedule = $this->getAvailMemberSchedules($request, $courtId);
             $totalPrice = 0;
 
-            foreach($schedules as $schedule) {
-                if ($prev == "" || $prev == $schedule->date) {
-                    $co++;
-                    array_push($validSchedIds, $schedule->id);
-                    $courtPrice = CourtPrice::where('court_id', $schedule->court_id)->where('duration_in_hour', $schedule->interval)->where('is_member_price', 1)->first()['price'];
-                    $totalPrice += $courtPrice;
-                } else {
-                    if ($co == count($times)) {
-                        $co = 1;
-                        array_push($validSchedIds, $schedule->id);
-                        $courtPrice = CourtPrice::where('court_id', $schedule->court_id)->where('duration_in_hour', $schedule->interval)->where('is_member_price', 1)->first()['price'];
-                        $totalPrice += $courtPrice;
-                        $coMonth++;
-                        if ($coMonth == $request->month * 4) {
-                            break;
-                        }
-                    } else {
-                        return response()->json([
-                            'status' => false,
-                            'message' => "Gagal! Pada tanggal " . $prev . " tidak ada jam yang tersedia"
-                        ], 500);
-                    }
-                }
-                $prev = $schedule->date;
+            return $availableSchedule[0]->id;
+
+            foreach ($availableSchedule as $sched) {
+                $totalPrice += CourtPrice::where('court_id', $sched->court_id)->where('duration_in_hour', $sched->interval)->where('is_member_price', 1)->first()->price;
             }
 
             $user = User::where('id', $request->userId)->first();
@@ -316,7 +351,7 @@ class TransactionController extends Controller
                 "user_id" => $request->userId,
                 "transaction_status_id" => 5, // menunggu konfirmasi / pembayaran
                 "amount_rp" => $totalPrice + $fee,
-                "schedule_id" => $validSchedIds[0],
+                "schedule_id" => $availableSchedule[0]->id,
 
                 // // XENDIT HERE
                 // "checkout_link" => $response->collect()['invoice_url'],
@@ -324,12 +359,12 @@ class TransactionController extends Controller
                 // // UNTIL HERE
 
             ]);
-            foreach($validSchedIds as $scheduleId) {
+            foreach($availableSchedule as $sched) {
                 TransactionScheduleDetail::create([
-                    "schedule_id" => $scheduleId,
+                    "schedule_id" => $sched->id,
                     "transaction_id" => $transaction->id,
                 ]);
-                Schedule::where('id', $scheduleId)->update([
+                Schedule::where('id', $sched->id)->update([
                     'availability' => 0,
                 ]);
             }
