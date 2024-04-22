@@ -32,7 +32,7 @@ class TransactionController extends Controller
             $filter = new TransactionQuery();
             $queryItems = $filter->transform($request); //[['column', 'operator', 'value']]
 
-            $res = Transaction::select('transactions.id', 'transactions.external_id', 'transactions.order_id', 'transactions.user_id', 'transactions.schedule_id', 'transactions.court_id', 'transactions.reason', 'transactions.transaction_status_id', 'transactions.created_at', 'transactions.updated_at')->with('schedule')->with('court')->with('transactionStatus');
+            $res = Transaction::select('transactions.id', 'transactions.external_id', 'transactions.user_id', 'transactions.schedule_id', 'transactions.reason', 'transactions.transaction_status_id', 'transactions.created_at', 'transactions.updated_at')->with('schedule')->with('court')->with('transactionStatus');
 
             if (count($queryItems) > 0) {
                 $res->leftJoin('transaction_statuses', 'transaction_statuses.id', '=', 'transactions.transaction_status_id')->where($queryItems);
@@ -226,7 +226,7 @@ class TransactionController extends Controller
 
             $query .= $query2;
 
-            if ($i < count($requestSchedule) - 1) {
+            if ($i != count($request->schedules) - 1) {
                 $query .= ") OR ";
             } else {
                 $query .= ")";
@@ -260,7 +260,7 @@ class TransactionController extends Controller
 
             $query .= $query2;
 
-            if ($i < count($requestSchedule) - 1) {
+            if ($i != count($request->schedules) - 1) {
                 $query .= ") OR ";
             } else {
                 $query .= ")";
@@ -328,7 +328,17 @@ class TransactionController extends Controller
             $availableSchedule = $this->getAvailMemberSchedules($request, $courtId);
             $totalPrice = 0;
 
-            return $availableSchedule[0]->id;
+            if (count($availableSchedule) <= 0) {
+                return response()->json([
+                    'status' => false,
+                    'message' => "Tidak ada jadwal tersedia"
+                ]);
+            } else if (count($availableSchedule) < count($request->schedules) * $request->month * 4) {
+                return response()->json([
+                    'status' => false,
+                    'message' => "Jadwal dari pemilik lapangan belum lengkap. Coba beberapa saat lagi."
+                ]);
+            }
 
             foreach ($availableSchedule as $sched) {
                 $totalPrice += CourtPrice::where('court_id', $sched->court_id)->where('duration_in_hour', $sched->interval)->where('is_member_price', 1)->first()->price;
