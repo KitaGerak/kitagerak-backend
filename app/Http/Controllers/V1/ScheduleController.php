@@ -49,6 +49,7 @@ class ScheduleController extends Controller
         $availability = $request->query('availability');
         $venueId = $request->query('venueId');
         $ownerId = $request->query('ownerId');
+        $date = $request->query('date');
         if ($dayOfWeek && $month && $courtId) {
             if ($intervalMonth && $intervalMonth > 1) {
                 $month2 = $month + $intervalMonth;
@@ -101,8 +102,16 @@ class ScheduleController extends Controller
             ]);
             // return ScheduleResource::collection($schedules);
         } else if ($courtId) {
-            $sql = "SELECT *, DAYOFWEEK(date) AS day_of_week FROM `schedules` WHERE court_id = ? AND availability = 1 AND status = 1 ORDER BY date";
-            $schedules = DB::select($sql, [$courtId]);
+            if($date)
+            {
+                $sql = "SELECT *, DAYOFWEEK(date) AS day_of_week FROM `schedules` WHERE court_id = ? WHERE date = ? AND availability = 1 AND status = 1 ORDER BY date";
+                $schedules = DB::select($sql, [$courtId, $date]);
+            }
+            else
+            {
+                $sql = "SELECT *, DAYOFWEEK(date) AS day_of_week FROM `schedules` WHERE court_id = ? AND availability = 1 AND status = 1 ORDER BY date";
+                $schedules = DB::select($sql, [$courtId]);
+            }
             // $schedules = DB::select(DB::raw("SELECT *, DAYOFWEEK(date) AS day_of_week FROM `schedules` WHERE court_id = $courtId AND availability = 1 AND status = 1 ORDER BY date"));
             if (count($schedules) > 0) {
                 $resSchedules = [];
@@ -110,7 +119,23 @@ class ScheduleController extends Controller
                 foreach ($schedules as $i => $schedule) {
                     $key = $i - 1;
                     if (($key >= 0 && $schedule->date == $schedules[$key]->date) || $i == 0) {
-                        array_push($tmpSchedule, new ScheduleResource($schedule));
+                        $scheduleData = new stdClass;
+                        $scheduleData->id = $schedule->id;
+                        $scheduleData->date = $schedule->date;
+                        $scheduleData->timeStart = $schedule->time_start;
+                        $scheduleData->timeFinish = $schedule->time_finish;
+                        $scheduleData->interval = $schedule->interval;
+                        $scheduleData->availability = $schedule->availability;
+                        $scheduleData->price = $schedule->price;
+                        $scheduleData->status = $schedule->status;
+                        $scheduleData->courtId = $schedule->court_id;
+                        $scheduleData->status = $schedule->status;
+
+
+                        $court = Court::find($schedule->court_id);
+                        $scheduleData->courtName = $court->name;
+
+                        array_push($tmpSchedule, $scheduleData);
                     } else {
                         array_push(
                             $resSchedules,
@@ -122,7 +147,24 @@ class ScheduleController extends Controller
                         );
 
                         $tmpSchedule = [];
-                        array_push($tmpSchedule, new ScheduleResource($schedule));
+
+                        $scheduleData = new stdClass;
+                        $scheduleData->id = $schedule->id;
+                        $scheduleData->date = $schedule->date;
+                        $scheduleData->timeStart = $schedule->time_start;
+                        $scheduleData->timeFinish = $schedule->time_finish;
+                        $scheduleData->interval = $schedule->interval;
+                        $scheduleData->availability = $schedule->availability;
+                        $scheduleData->price = $schedule->price;
+                        $scheduleData->status = $schedule->status;
+                        $scheduleData->courtId = $schedule->court_id;
+                        $scheduleData->status = $schedule->status;
+
+
+                        $court = Court::find($schedule->court_id);
+                        $scheduleData->courtName = $court->name;
+
+                        array_push($tmpSchedule, $scheduleData);
                     }
                 }
 
@@ -235,19 +277,27 @@ class ScheduleController extends Controller
                 "data" => []
             ]);
         } else if ($ownerId) {
-           
             $venues = Venue::where('owner_id', $ownerId)->get();
             $resSchedules = [];
             $tmpSchedule = [];
             foreach ($venues as $venue) {
                 $venueId = $venue->id;
-
                 $courts = Court::where('venue_id', $venueId)->get();
                 foreach ($courts as $court) {
+                    
                     $courtId = $court->id;
-                    $sql = "SELECT *, DAYOFWEEK(date) AS day_of_week FROM `schedules` right join `transactions` on schedules.id = transactions.schedule_id WHERE court_id = ? AND availability = 1 AND status = 1 ORDER BY date";
+                    if($date)
+                    {
+                    $date = strval($date);
+                    $sql = "SELECT *, DAYOFWEEK(date) AS day_of_week FROM `schedules` right join `transactions` on schedules.id = transactions.schedule_id WHERE court_id = ? AND date = '$date' AND availability = 1 AND status = 1";
                     $schedules = DB::select($sql, [$courtId]);
-    
+                    }
+                    else
+                    {
+                    $sql = "SELECT *, DAYOFWEEK(date) AS day_of_week FROM `schedules` right join `transactions` on schedules.id = transactions.schedule_id WHERE court_id = ? AND availability = 1 AND status = 1 ORDER BY date";
+                        $schedules = DB::select($sql, [$courtId]);
+                    }
+                    $schedules = DB::select($sql, [$courtId]);
                     // $schedules = DB::select(DB::raw("SELECT *, DAYOFWEEK(date) AS day_of_week FROM `schedules` WHERE court_id = $courtId AND availability = 1 AND status = 1 ORDER BY date"));
                     if (count($schedules) > 0) {
                        

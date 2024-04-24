@@ -61,6 +61,7 @@ Route::group(['prefix' => 'v1'], function() {
 
         Route::group(['prefix' => 'courts'], function() {
             Route::post('/', [CourtController::class, "store"]);
+            Route::post('/{court:id}/insertPrices', [CourtController::class, "insertPrices"]);
             Route::post('/{court:id}/updateImages', [CourtController::class, "updateImages"]);
             Route::put('/{court:id}', [CourtController::class, "update"]);
             Route::patch('/{court:id}', [CourtController::class, "update"]);

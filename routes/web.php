@@ -30,6 +30,8 @@ Route::get('/', function () {
 Route::get('/verified', function () {
     return "Berhasil verifikasi email! Silahkan kembali ke aplikasi KitaGerak...";
 });
+
+
 Route::get('/test', [ScheduleController::class, "generateSchedule"]);
 Route::get('/images/{fileName}', [ImageController::class, "show"]);
 

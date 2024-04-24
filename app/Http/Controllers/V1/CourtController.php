@@ -76,9 +76,26 @@ class CourtController extends Controller
 
             // self::storeCourtPrice($request, $res->id);
 
-            // $this->uploadImages($request, $res->id);
+            $this->uploadImages($request, $res->id);
     
             return new CourtResource(Court::where('id', $res->id)->first());
+        } catch (\Exception $e)
+        {
+            return response()->json($e->getMessage());
+        }
+    }
+
+    public function insertPrices(Request $request)
+    {
+        try {
+            $newCourtPrice = new CourtPrice();
+            $newCourtPrice->court_id = $request->court_id;
+            $newCourtPrice->price = $request->price;
+            $newCourtPrice->is_member_price = $request->is_member;
+            $newCourtPrice->duration_in_hour = $request->duration_in_hour;
+            $newCourtPrice->save();
+    
+            return new CourtResource(Court::where('id', $request->court_id)->first());
         } catch (\Exception $e)
         {
             return response()->json($e->getMessage());
