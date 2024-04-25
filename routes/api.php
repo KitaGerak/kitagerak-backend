@@ -85,7 +85,8 @@ Route::group(['prefix' => 'v1'], function() {
             Route::get('/{transaction:external_id}', [TransactionController::class, "show"]);
             Route::post('/', [TransactionController::class, "store"]);
             Route::post('/bulkStore', [TransactionController::class, "bulkStore"]);
-            Route::patch('/{transaction:external_id}', [TransactionController::class, "update"]);
+            Route::post('/{transaction:external_id}/cancel', [TransactionController::class, "cancelSchedule"]);
+            // Route::patch('/{transaction:external_id}', [TransactionController::class, "update"]);
         });
 
         Route::group(['prefix' => 'ratings'], function() {

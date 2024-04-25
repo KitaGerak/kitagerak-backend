@@ -9,6 +9,7 @@ use App\Http\Requests\V1\StoreScheduleRequest;
 use App\Http\Requests\V1\UpdateScheduleRequest;
 use App\Http\Resources\V1\ScheduleResource;
 use App\Models\Court;
+use App\Models\CourtImage;
 use App\Models\Schedule;
 use App\Models\Transaction;
 use App\Models\User;
@@ -43,24 +44,30 @@ class ScheduleController extends Controller
     public function index(Request $request)
     {
         $courtId = $request->query('courtId');
+        $startDate = $request->query('startDate');
+
         $dayOfWeek = $request->query('dayOfWeek');
-        $month = $request->query('month');
-        $intervalMonth = $request->query('intervalMonth');
+
+        // $month = $request->query('month');
+        // $intervalMonth = $request->query('intervalMonth');
+
         $availability = $request->query('availability');
         $venueId = $request->query('venueId');
         $ownerId = $request->query('ownerId');
         $date = $request->query('date');
-        if ($dayOfWeek && $month && $courtId) {
-            if ($intervalMonth && $intervalMonth > 1) {
-                $month2 = $month + $intervalMonth;
-                $query = "MONTH(date) BETWEEN $month AND $month2";
-            } else {
-                $query = "MONTH(date) = $month";
-            }
+        // if ($dayOfWeek && $month && $courtId) {
+        if ($dayOfWeek && $courtId) {
+            // if ($intervalMonth && $intervalMonth > 1) {
+            //     $month2 = $month + $intervalMonth;
+            //     $query = "MONTH(date) BETWEEN $month AND $month2";
+            // } else {
+            //     $query = "MONTH(date) = $month";
+            // }
+            $query = "date >= '$startDate'";
             if ($availability) {
-                $schedules = DB::select(DB::raw("SELECT *, DAYOFWEEK(date) AS day_of_week FROM `schedules` WHERE availability = 1 AND status = 1 AND court_id = $courtId AND $query HAVING day_of_week = $dayOfWeek ORDER BY date"));
+                $schedules = DB::select(DB::raw("SELECT *, DAYOFWEEK(date) AS day_of_week FROM `schedules` WHERE availability = 1 AND status = 1 AND date > NOW() AND court_id = $courtId AND $query HAVING day_of_week = $dayOfWeek ORDER BY date, time_start"));
             } else {
-                $schedules = DB::select(DB::raw("SELECT *, DAYOFWEEK(date) AS day_of_week FROM `schedules` WHERE court_id = $courtId AND $query HAVING day_of_week = $dayOfWeek ORDER BY date"));
+                $schedules = DB::select(DB::raw("SELECT *, DAYOFWEEK(date) AS day_of_week FROM `schedules` WHERE date > NOW() AND court_id = $courtId AND $query HAVING day_of_week = $dayOfWeek ORDER BY date, time_start"));
             }
 
             if (count($schedules) > 0) {
@@ -102,17 +109,9 @@ class ScheduleController extends Controller
             ]);
             // return ScheduleResource::collection($schedules);
         } else if ($courtId) {
-            if($date)
-            {
-                $sql = "SELECT *, DAYOFWEEK(date) AS day_of_week FROM `schedules` WHERE court_id = ? WHERE date = ? AND availability = 1 AND status = 1 ORDER BY date";
-                $schedules = DB::select($sql, [$courtId, $date]);
-            }
-            else
-            {
-                $sql = "SELECT *, DAYOFWEEK(date) AS day_of_week FROM `schedules` WHERE court_id = ? AND availability = 1 AND status = 1 ORDER BY date";
-                $schedules = DB::select($sql, [$courtId]);
-            }
-            // $schedules = DB::select(DB::raw("SELECT *, DAYOFWEEK(date) AS day_of_week FROM `schedules` WHERE court_id = $courtId AND availability = 1 AND status = 1 ORDER BY date"));
+            $sql = "SELECT *, DAYOFWEEK(date) AS day_of_week FROM `schedules` WHERE court_id = ? AND date > NOW() AND availability = 1 AND status = 1 ORDER BY date, time_start";
+            $schedules = DB::select($sql, [$courtId]);
+            // $schedules = DB::select(DB::raw("SELECT *, DAYOFWEEK(date) AS day_of_week FROM `schedules` WHERE court_id = $courtId AND availability = 1 AND status = 1 ORDER BY date, time_start"));
             if (count($schedules) > 0) {
                 $resSchedules = [];
                 $tmpSchedule = [];
@@ -134,6 +133,10 @@ class ScheduleController extends Controller
 
                         $court = Court::find($schedule->court_id);
                         $scheduleData->courtName = $court->name;
+
+                        $courtImage = CourtImage::where('court_id', $court->id)->first();
+                        if(isset($courtImage))
+                            $scheduleData->courtImage = $courtImage->url;
 
                         array_push($tmpSchedule, $scheduleData);
                     } else {
@@ -187,10 +190,10 @@ class ScheduleController extends Controller
             $courts = Court::where('venue_id', $venueId)->get();
             foreach ($courts as $court) {
                 $courtId = $court->id;
-                $sql = "SELECT *, DAYOFWEEK(date) AS day_of_week FROM `schedules` right join `transactions` on schedules.id = transactions.schedule_id WHERE court_id = ? AND availability = 1 AND status = 1 ORDER BY date";
+                $sql = "SELECT *, DAYOFWEEK(date) AS day_of_week FROM `schedules` right join `transactions` on schedules.id = transactions.schedule_id WHERE court_id = ? AND date > NOW() AND availability = 1 AND status = 1 ORDER BY date, time_start";
                 $schedules = DB::select($sql, [$courtId]);
 
-                // $schedules = DB::select(DB::raw("SELECT *, DAYOFWEEK(date) AS day_of_week FROM `schedules` WHERE court_id = $courtId AND availability = 1 AND status = 1 ORDER BY date"));
+                // $schedules = DB::select(DB::raw("SELECT *, DAYOFWEEK(date) AS day_of_week FROM `schedules` WHERE court_id = $courtId AND availability = 1 AND status = 1 ORDER BY date, time_start"));
                 if (count($schedules) > 0) {
                     $resSchedules = [];
                     $tmpSchedule = [];

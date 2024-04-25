@@ -38,7 +38,6 @@ class ScheduleResource extends JsonResource
     }
     public function toArray($request)
     {
-        //ADDED
         $price = [
             "member" => 0,
             "daily" => 0,
@@ -56,10 +55,10 @@ class ScheduleResource extends JsonResource
         } else {
             $price["discountPrice"] = $this->price;
         }
-        //END-ADDED
-
+        
         return [
             'id' => $this->id,
+            'checkoutLink' => $this->checkout_link,
             'date' => $this->tgl_indo($this->date),
             'timeStart' => $this->time_start,
             'timeFinish' => $this->time_finish,

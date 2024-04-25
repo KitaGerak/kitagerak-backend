@@ -4,6 +4,7 @@ namespace App\Http\Resources\V1;
 
 use App\Models\Rating;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\DB;
 
 class TransactionResource extends JsonResource
 {
@@ -40,10 +41,43 @@ class TransactionResource extends JsonResource
     public function toArray($request)
     {
         $rating = Rating::where('user_id', $this->user_id)->where('court_id', $this->schedule->court->id)->where('transaction_id', $this->external_id)->count();
+        $schedules = DB::select(DB::raw("SELECT *, DAYOFWEEK(date) AS day_of_week FROM `schedules` WHERE id IN (SELECT schedule_id FROM `transaction_schedule_details` WHERE transaction_id = " . $this->id . ")"));
+        $resSchedules = [];
+        if (count($schedules) > 0) {
+            $resSchedules = [];
+            $tmpSchedule = [];
+            foreach ($schedules as $i => $schedule) {
+                $key = $i - 1;
+                if (($key >= 0 && $schedule->date == $schedules[$key]->date) || $i == 0) {
+                    array_push($tmpSchedule, new ScheduleResource($schedule));
+                } else {
+                    array_push(
+                        $resSchedules,
+                        [
+                            "date" => $this->tgl_indo($schedules[$key]->date),
+                            "dayOfWeek" => $schedules[$key]->day_of_week,
+                            "schedule" => $tmpSchedule
+                        ]
+                    );
+
+                    $tmpSchedule = [];
+                    array_push($tmpSchedule, new ScheduleResource($schedule));
+                }
+            }
+
+            array_push(
+                $resSchedules,
+                [
+                    "date" => $this->tgl_indo($schedules[count($schedules) - 1]->date),
+                    "dayOfWeek" => $schedules[count($schedules) - 1]->day_of_week,
+                    "schedule" => $tmpSchedule
+                ]
+            );
+        }
         return [
             'externalId' => $this->external_id,
             'orderDate' => $this->tgl_indo(explode(" ", explode("T", $this->created_at)[0])[0]),
-            'schedule' => new ScheduleResource($this->whenLoaded('schedule')),
+            'schedules' => $resSchedules,
             'court' => new CourtResource($this->whenLoaded('court')),
             'reason' => $this->reason,
             'transactionStatus' => new TransactionStatusResource($this->whenLoaded('transactionStatus')),
