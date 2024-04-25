@@ -34,7 +34,7 @@ class TransactionController extends Controller
             $filter = new TransactionQuery();
             $queryItems = $filter->transform($request); //[['column', 'operator', 'value']]
 
-            $res = Transaction::select('transactions.id', 'transactions.external_id', 'transactions.user_id', 'transactions.schedule_id', 'transactions.reason', 'transactions.transaction_status_id', 'transactions.created_at', 'transactions.updated_at')->with('schedule')->with('court')->with('transactionStatus');
+            $res = Transaction::select('*')->with('schedule')->with('court')->with('transactionStatus');
 
             if (count($queryItems) > 0) {
                 $res->leftJoin('transaction_statuses', 'transaction_statuses.id', '=', 'transactions.transaction_status_id')->where($queryItems);

@@ -55,10 +55,9 @@ class ScheduleResource extends JsonResource
         } else {
             $price["discountPrice"] = $this->price;
         }
-        
+
         return [
             'id' => $this->id,
-            'checkoutLink' => $this->checkout_link,
             'date' => $this->tgl_indo($this->date),
             'timeStart' => $this->time_start,
             'timeFinish' => $this->time_finish,

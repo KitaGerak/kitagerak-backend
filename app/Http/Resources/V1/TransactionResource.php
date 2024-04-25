@@ -76,6 +76,8 @@ class TransactionResource extends JsonResource
         }
         return [
             'externalId' => $this->external_id,
+            'checkoutLink' => $this->checkout_link,
+            'price' => $this->amount_rp,
             'orderDate' => $this->tgl_indo(explode(" ", explode("T", $this->created_at)[0])[0]),
             'schedules' => $resSchedules,
             'court' => new CourtResource($this->whenLoaded('court')),
