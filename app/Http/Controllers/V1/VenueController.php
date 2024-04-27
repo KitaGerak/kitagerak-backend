@@ -14,7 +14,9 @@ use App\Models\Court;
 use App\Models\CourtType;
 use App\Models\User;
 use App\Models\Venue;
+use App\Models\VenueFacilities;
 use App\Models\VenueImage;
+use App\Models\VenueOpenDays;
 use App\Services\V1\VenueQuery;
 use Carbon\Carbon;
 use Exception;
@@ -156,7 +158,6 @@ class VenueController extends Controller
 
     //StoreVenueRequest
     public function store(Request $request) {
-
         try {
            
 
@@ -181,6 +182,32 @@ class VenueController extends Controller
                 'close_hour' => Carbon::createFromFormat('H:i:s', '21:00:00'),
                 'interval' => 2,
             ]));
+
+            try {
+                foreach (json_decode($request->facilities) as $index => $facility) {
+                    if(boolval($facility))
+                    {
+                        $venueFacility = new VenueFacilities();
+                        $venueFacility->venue_id = $venue->id;
+                        $venueFacility->facility_id = $index + 1;
+                        $venueFacility->save();
+                    }
+                }
+
+                foreach (json_decode($request->open_days) as $index => $open_day) {
+                    if(boolval($open_day))
+                    {
+                        $venueOpenDay = new VenueOpenDays();
+                        $venueOpenDay->venue_id = $venue->id;
+                        $venueOpenDay->day_of_week = $index + 1;
+                        $venueOpenDay->save();
+                    }
+                }
+                    
+            } catch (\Exception $e)
+            {
+                return response()->json($e->getMessage());
+            }
 
             if($request->hasFile('venueImages'))
             {

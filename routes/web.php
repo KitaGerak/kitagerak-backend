@@ -27,6 +27,10 @@ Route::get('/', function () {
     return "KitaGerak API";
 });
 
+Route::get('/', function () {
+    return view('layouts.light');
+});
+
 Route::get('/verified', function () {
     return "Berhasil verifikasi email! Silahkan kembali ke aplikasi KitaGerak...";
 });
