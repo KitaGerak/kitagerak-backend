@@ -79,8 +79,7 @@ class TransactionController extends Controller
             'external_id' => $externalId,
             'payer_email' => $user->email,
             'description' => "Pembayaran Penyewaan Lapangan pada " . $externalId,
-            // 'amount' => $price + $fee,
-            'amount' => 50000,
+            'amount' => $price + $fee,
             'success_redirect_url' => url(env('APP_HOST') . "/payment-success"),
             'failed_redirect_url' => url(env('APP_HOST') . "/payment-failed"),
             'invoice_duration' => 18000, // 5 hours
@@ -141,7 +140,7 @@ class TransactionController extends Controller
             foreach ($request->scheduleId as $scheduleId) {
                 $schedule = Schedule::where('id', $scheduleId)->first();
                 
-                $courtPrice = CourtPrice::where('court_id', $schedule->court_id)->where('duration_in_hour', $schedule->interval)->where('is_member_price', 1)->first()['price'];
+                $courtPrice = CourtPrice::where('court_id', $schedule->court_id)->where('duration_in_hour', $schedule->interval)->where('is_member_price', 0)->first()['price'];
                 $totalPrice += $courtPrice;
                 
                 if ($schedule->availability == 0 || $schedule->status == 0) {
@@ -342,13 +341,13 @@ class TransactionController extends Controller
             $fee = Fee::where('name', 'app_admin')->first()->amount_rp;
             $externalId = "MEMBER_" . time();
 
-            // $xenditResponse = $this->xenditPayment($externalId, $user, $totalPrice, $fee);
-            // if (!$xenditResponse->successful()) {
-            //     return response()->json([
-            //         "status" => false,
-            //         "message" => "Payment failed because system error",
-            //     ], 500);
-            // }
+            $xenditResponse = $this->xenditPayment($externalId, $user, $totalPrice, $fee);
+            if (!$xenditResponse->successful()) {
+                return response()->json([
+                    "status" => false,
+                    "message" => "Payment failed because system error",
+                ], 500);
+            }
             
             $transaction = Transaction::create([
                 "external_id" => $externalId,
@@ -357,8 +356,8 @@ class TransactionController extends Controller
                 "amount_rp" => $totalPrice + $fee,
                 "schedule_id" => $availableSchedule[0]->id,
                 // XENDIT HERE
-                // "checkout_link" => $xenditResponse->collect()['invoice_url'],
-                // "invoice_id" => $xenditResponse->collect()['id'],
+                "checkout_link" => $xenditResponse->collect()['invoice_url'],
+                "invoice_id" => $xenditResponse->collect()['id'],
                 // UNTIL HERE
 
             ]);
@@ -403,9 +402,10 @@ class TransactionController extends Controller
                 if (strtotime($transaction->schedule->date . " " . $transaction->schedule->time_start) > strtotime($dt->format('Y-m-d H:i:s')) && str_contains($transaction->external_id, 'DAILY')) {
                     // pengembalian 100%
                     $transaction->transaction_status_id = 3;
+                    $transaction->save();
                     $balance = VenueOwnerBalance::where('user_id', $userIdAuth->id)->first();
                     $fee = Fee::where('name', 'app_admin')->first()->amount_rp;
-                    if (count($balance) > 0) {
+                    if ($balance != null && count($balance) > 0) {
                         VenueOwnerBalance::where('id', $balance->id)->update([
                             'balance' => $balance->balance + ($transaction->amount_rp - $fee)
                         ]);
@@ -432,9 +432,11 @@ class TransactionController extends Controller
                     // pengembalian 50%;
 
                     $transaction->transaction_status_id = 3;
+                    $transaction->save();
+
                     $balance = VenueOwnerBalance::where('user_id', $userIdAuth->id)->first();
                     $fee = Fee::where('name', 'app_admin')->first()->amount_rp;
-                    if (count($balance) > 0) {
+                    if ($balance != null && count($balance) > 0) {
                         VenueOwnerBalance::where('id', $balance->id)->update([
                             'balance' => $balance->balance + (($transaction->amount_rp / 2) - $fee)
                         ]);
@@ -466,6 +468,7 @@ class TransactionController extends Controller
             } elseif ($userIdAuth->roleId == 4) { // 4 == Admin -- tidak ada cek.
                 // if ($request->transactionStatusId == 2 || $request->transactionStatusId == 3 || $request->transactionStatusId == 4) {
                 $transaction->status = 2;
+                $transaction->save();
                 Schedule::where('id', $transaction->scheduleId)->update([
                     'availability' => '1'
                 ]);
