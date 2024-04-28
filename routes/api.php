@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\V1\AccountController;
 use App\Http\Controllers\V1\AuthController;
+use App\Http\Controllers\V1\BalanceController;
 use App\Http\Controllers\V1\CourtController;
 use App\Http\Controllers\V1\CourtTypeController;
 use App\Http\Controllers\V1\InvoiceController;
@@ -45,6 +46,14 @@ Route::group(['prefix' => 'v1'], function() {
         Route::get('/{court:id}', [CourtController::class, "show"]);
     });
 
+    Route::group(['prefix' => 'account'], function() {
+        Route::group(['prefix' => 'forgotPassword'], function() {
+            Route::post('/', [AccountController::class, "generateCode"]);
+            Route::post('/verifyCode', [AccountController::class, "verifyCode"]);
+            Route::post('/changePassword', [AccountController::class, "changePassword"]);
+        });
+    });
+
     Route::group(['middleware' => 'auth:sanctum'], function() {
 
         Route::get('/filterOptions', [VenueController::class, "filterOptions"]);
@@ -69,9 +78,8 @@ Route::group(['prefix' => 'v1'], function() {
         });
 
         Route::group(['prefix' => 'schedules'], function() {
-            //MOVED
             Route::get('/', [ScheduleController::class, "index"]);
-            //END-MOVED
+            Route::get('/renter', [ScheduleController::class, "getScheduleForCustomer"]);
             Route::post('/', [ScheduleController::class, "store"]);
             Route::post('/bulkStore', [ScheduleController::class, "bulkStore"]);
             Route::put('/{schedule:id}', [ScheduleController::class, "update"]);
@@ -87,6 +95,10 @@ Route::group(['prefix' => 'v1'], function() {
             Route::post('/bulkStore', [TransactionController::class, "bulkStore"]);
             Route::post('/{transaction:external_id}/cancel', [TransactionController::class, "cancelSchedule"]);
             // Route::patch('/{transaction:external_id}', [TransactionController::class, "update"]);
+        });
+
+        Route::group(['prefix' => 'balances'], function() {
+            Route::get('/{user:id}', [BalanceController::class, "index"]);
         });
 
         Route::group(['prefix' => 'ratings'], function() {
