@@ -35,12 +35,16 @@ class VenueController extends Controller
 
     public function index(Request $request) {
         $includeCourts = $request->query('includeCourts');
+        $allowAllStatus = $request->query('allowAllStatus');
         $ownerId = $request->owner_id;
         
         $filter = new VenueQuery();
         $queryItems = $filter->transform($request); //[['column', 'operator', 'value']]
 
-        $res = Venue::where('venues.status', '<>', 0);
+        $res = new Venue();
+        if($allowAllStatus!=true || !isset($allowAllStatus))
+            $res = $res->where('venues.status', '<>', 0);
+            
         if ($includeCourts) {
             $this->courtTypeObj->withCourts = true;
             $res->with('courts');
@@ -159,7 +163,6 @@ class VenueController extends Controller
     //StoreVenueRequest
     public function store(Request $request) {
         try {
-           
 
             $user = User::find($request->owner_id);
 
@@ -178,6 +181,7 @@ class VenueController extends Controller
                 'owner_id' => $request['owner_id'],
                 'image_url' => $request['image_url'],
                 'address_id' => $address['id'],
+                'status' => 0,
                 'open_hour' => Carbon::createFromFormat('H:i:s', '07:00:00'),
                 'close_hour' => Carbon::createFromFormat('H:i:s', '21:00:00'),
                 'interval' => 2,

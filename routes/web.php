@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\V1\ImageController;
 use App\Http\Controllers\V1\ScheduleController;
+use App\Http\Controllers\VenueController;
 use App\Http\Controllers\VerifyEmailController;
 use GuzzleHttp\Psr7\Request;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
@@ -52,4 +53,10 @@ Route::get('/payment-success', function() {
 Route::get('/payment-failed', function() {
     //TODO:: Create an UI
     return "Pembayaran Gagal";
+});
+
+Route::group(['prefix' => 'venues'], function(){
+    Route::get('/', [VenueController::class, 'index']);
+    Route::get('/{venueId}/detail', [VenueController::class, 'detail']);
+    Route::post('/{venueId}/accept', [VenueController::class, 'acceptVenueRegistration']);
 });
