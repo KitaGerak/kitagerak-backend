@@ -21,6 +21,10 @@ class Court extends Model
         return $this->hasMany(CourtImage::class)->where('court_images.status', '<>', 0);
     }
 
+    public function prices() {
+        return $this->hasMany(CourtPrice::class);
+    }
+
     public function schedules() {
         return $this->hasMany(Schedule::class);
     }

@@ -18,6 +18,8 @@ class CourtResource extends JsonResource
     public function toArray($request)
     {
         // return parent::toArray($request);
+
+        // dd(new CourtPriceResource($this->prices));
         return [
             'id' => $this->id,
             'name' => $this->name,
@@ -26,7 +28,8 @@ class CourtResource extends JsonResource
             'courtType' => new CourtTypeResource($this->courtType),
             'alternateType' => $this->alternate_type,
             'size' => $this->size,
-            'price' => $this->price,
+            // 'price' => $this->price,
+            'prices' => CourtPriceResource::collection($this->prices),
             'images' => CourtImageResource::collection($this->images),
             'status' => $this->status,
             'rating' => [

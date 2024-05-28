@@ -2,8 +2,8 @@
 
 namespace App\Http\Resources\V1;
 
-use App\Http\Resources\RatingPhotoResource;
-use App\Http\Resources\UserResource;
+use App\Http\Resources\V1\RatingPhotoResource;
+use App\Http\Resources\V1\UserResource;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class RatingResource extends JsonResource

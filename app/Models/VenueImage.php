@@ -8,4 +8,6 @@ use Illuminate\Database\Eloquent\Model;
 class VenueImage extends Model
 {
     use HasFactory;
+
+    protected $table = "venue_images";
 }

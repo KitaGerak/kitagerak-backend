@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Http\Resources;
+namespace App\Http\Resources\V1;
 
 use Illuminate\Http\Resources\Json\JsonResource;
 
-class RatingPhotoResource extends JsonResource
+class RoleResource extends JsonResource
 {
     /**
      * Transform the resource into an array.
@@ -16,7 +16,7 @@ class RatingPhotoResource extends JsonResource
     {
         return [
             "id" => $this->id,
-            "url" => str_replace("private", env("APP_URL"), $this->url),
+            "name" => $this->name,
         ];
     }
 }

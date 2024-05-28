@@ -10,13 +10,16 @@ use App\Http\Resources\V1\CourtCollection;
 use App\Http\Resources\V1\CourtResource;
 use App\Models\Court;
 use App\Models\CourtImage;
+use App\Models\CourtPrice;
 use App\Models\Venue;
+use PDO;
 
 class CourtController extends Controller
 {
 
     public function index(Request $request) {
         $court = new Court();
+
         if($request->query('venueId'))
             $court = $court->where("venue_id", $request->query('venueId'));
 
@@ -29,7 +32,7 @@ class CourtController extends Controller
         }
 
         $court = $court->get();
-
+        
         return response()->json(["data" => $court]);
         // return new CourtCollection(Court::paginate(10));
     }
@@ -53,14 +56,46 @@ class CourtController extends Controller
         }
     }
 
+    public function storeCourtPrice($request, $courtId)
+    {
+        foreach ($request->prices as $courtPrice) {
+            $newCourtPrice = new CourtPrice();
+            $newCourtPrice->court_id = $courtId;
+            $newCourtPrice->price = $courtPrice['price'];
+            $newCourtPrice->is_member_price = $courtPrice['isMemberPrice'];
+            $newCourtPrice->duration_in_hour = $courtPrice['durationInHour'];
+            $newCourtPrice->save();
+        }
+
+    }
     // StoreCourtRequest
-    public function store(StoreCourtRequest $request) {
+    public function store(Request $request) {
 
         try {
             $res = Court::create($request->all());
+
+            // self::storeCourtPrice($request, $res->id);
+
             $this->uploadImages($request, $res->id);
     
             return new CourtResource(Court::where('id', $res->id)->first());
+        } catch (\Exception $e)
+        {
+            return response()->json($e->getMessage());
+        }
+    }
+
+    public function insertPrices(Request $request)
+    {
+        try {
+            $newCourtPrice = new CourtPrice();
+            $newCourtPrice->court_id = $request->court_id;
+            $newCourtPrice->price = $request->price;
+            $newCourtPrice->is_member_price = $request->is_member;
+            $newCourtPrice->duration_in_hour = $request->duration_in_hour;
+            $newCourtPrice->save();
+    
+            return new CourtResource(Court::where('id', $request->court_id)->first());
         } catch (\Exception $e)
         {
             return response()->json($e->getMessage());

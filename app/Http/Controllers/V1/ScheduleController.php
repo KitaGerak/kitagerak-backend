@@ -9,6 +9,7 @@ use App\Http\Requests\V1\StoreScheduleRequest;
 use App\Http\Requests\V1\UpdateScheduleRequest;
 use App\Http\Resources\V1\ScheduleResource;
 use App\Models\Court;
+use App\Models\CourtImage;
 use App\Models\Schedule;
 use App\Models\Transaction;
 use App\Models\User;
@@ -37,34 +38,27 @@ class ScheduleController extends Controller
             'Desember'
         );
         $pecahkan = explode('-', $tanggal);
-
-        // variabel pecahkan 0 = tanggal
-        // variabel pecahkan 1 = bulan
-        // variabel pecahkan 2 = tahun
-
         return $pecahkan[2] . ' ' . $bulan[(int)$pecahkan[1]] . ' ' . $pecahkan[0];
     }
 
-    public function index(Request $request)
-    {
+    public function getScheduleForCustomer(Request $request) {
         $courtId = $request->query('courtId');
+        $startDate = $request->query('startDate');
+
         $dayOfWeek = $request->query('dayOfWeek');
-        $month = $request->query('month');
-        $intervalMonth = $request->query('intervalMonth');
+
         $availability = $request->query('availability');
         $venueId = $request->query('venueId');
         $ownerId = $request->query('ownerId');
-        if ($dayOfWeek && $month && $courtId) {
-            if ($intervalMonth && $intervalMonth > 1) {
-                $month2 = $month + $intervalMonth;
-                $query = "MONTH(date) BETWEEN $month AND $month2";
-            } else {
-                $query = "MONTH(date) = $month";
-            }
+        $date = $request->query('date');
+
+        if ($dayOfWeek && $courtId) {
+
+            $query = "date >= '$startDate'";
             if ($availability) {
-                $schedules = DB::select(DB::raw("SELECT *, DAYOFWEEK(date) AS day_of_week FROM `schedules` WHERE availability = 1 AND status = 1 AND court_id = $courtId AND $query HAVING day_of_week = $dayOfWeek ORDER BY date"));
+                $schedules = DB::select(DB::raw("SELECT *, DAYOFWEEK(date) AS day_of_week FROM `schedules` WHERE availability = 1 AND status = 1 AND date > NOW() AND court_id = $courtId AND $query HAVING day_of_week = $dayOfWeek ORDER BY date, time_start"));
             } else {
-                $schedules = DB::select(DB::raw("SELECT *, DAYOFWEEK(date) AS day_of_week FROM `schedules` WHERE court_id = $courtId AND $query HAVING day_of_week = $dayOfWeek ORDER BY date"));
+                $schedules = DB::select(DB::raw("SELECT *, DAYOFWEEK(date) AS day_of_week FROM `schedules` WHERE date > NOW() AND court_id = $courtId AND $query HAVING day_of_week = $dayOfWeek ORDER BY date, time_start"));
             }
 
             if (count($schedules) > 0) {
@@ -104,11 +98,205 @@ class ScheduleController extends Controller
             return response()->json([
                 "data" => []
             ]);
-            // return ScheduleResource::collection($schedules);
         } else if ($courtId) {
-            $sql = "SELECT *, DAYOFWEEK(date) AS day_of_week FROM `schedules` WHERE court_id = ? AND availability = 1 AND status = 1 ORDER BY date";
-            $schedules = DB::select($sql, [$courtId]);
             // $schedules = DB::select(DB::raw("SELECT *, DAYOFWEEK(date) AS day_of_week FROM `schedules` WHERE court_id = $courtId AND availability = 1 AND status = 1 ORDER BY date"));
+
+            $sql = "SELECT *, DAYOFWEEK(date) AS day_of_week FROM `schedules` WHERE court_id = ? AND date > NOW() AND availability = 1 AND status = 1 ORDER BY date, time_start";
+            $schedules = DB::select($sql, [$courtId]);
+
+            if (count($schedules) > 0) {
+                $resSchedules = [];
+                $tmpSchedule = [];
+                foreach ($schedules as $i=>$schedule) {
+                    $key = $i-1;
+                    if (($key >= 0 && $schedule->date == $schedules[$key]->date) || $i == 0) {
+                        array_push($tmpSchedule, new ScheduleResource($schedule));
+                    } else {
+                        array_push(
+                            $resSchedules, 
+                            [
+                                "date" => $this->tgl_indo($schedules[$key]->date),
+                                "dayOfWeek" => $schedules[$key]->day_of_week,
+                                "schedule" => $tmpSchedule
+                            ]
+                        );
+
+                        $tmpSchedule = [];
+                        array_push($tmpSchedule, new ScheduleResource($schedule));
+                    }
+                }
+
+                array_push(
+                    $resSchedules, 
+                    [
+                        "date" => $this->tgl_indo($schedules[count($schedules)-1]->date),
+                        "dayOfWeek" => $schedules[count($schedules)-1]->day_of_week,
+                        "schedule" => $tmpSchedule
+                    ]
+                );
+                return response()->json([
+                    "data" => $resSchedules,
+                ]);
+            }
+            return response()->json([
+                "data" => []
+            ]);
+        } else if ($venueId) {
+            $courts = Court::where('venue_id', $venueId)->get();
+            foreach ($courts as $court) {
+                $courtId = $court->id;
+                $sql = "SELECT *, DAYOFWEEK(date) AS day_of_week FROM `schedules` right join `transactions` on schedules.id = transactions.schedule_id WHERE court_id = ? AND date > NOW() AND availability = 1 AND status = 1 ORDER BY date, time_start";
+                $schedules = DB::select($sql, [$courtId]);
+
+                // $schedules = DB::select(DB::raw("SELECT *, DAYOFWEEK(date) AS day_of_week FROM `schedules` WHERE court_id = $courtId AND availability = 1 AND status = 1 ORDER BY date, time_start"));
+                if (count($schedules) > 0) {
+                    $resSchedules = [];
+                    $tmpSchedule = [];
+                    foreach ($schedules as $i => $schedule) {
+                        $key = $i - 1;
+                        if (($key >= 0 && $schedule->date == $schedules[$key]->date) || $i == 0) {
+                            $scheduleData = new ScheduleResource($schedule);
+                            array_push($tmpSchedule, $scheduleData);
+                        } else {
+                            array_push(
+                                $resSchedules,
+                                [
+                                    "date" => $this->tgl_indo($schedules[$key]->date),
+                                    "dayOfWeek" => $schedules[$key]->day_of_week,
+                                    "schedule" => $tmpSchedule
+                                ]
+                            );
+
+                            $tmpSchedule = [];
+                            array_push($tmpSchedule, new ScheduleResource($schedule));
+                        }
+                    }
+
+                    array_push(
+                        $resSchedules,
+                        [
+                            "date" => $this->tgl_indo($schedules[count($schedules) - 1]->date),
+                            "dayOfWeek" => $schedules[count($schedules) - 1]->day_of_week,
+                            "schedule" => $tmpSchedule
+                        ]
+                    );
+                }
+            }
+
+            if (isset($resSchedules)) {
+                return response()->json([
+                    "data" => $resSchedules,
+                ]);
+            }
+
+            return response()->json([
+                "data" => []
+            ]);
+        } else if ($ownerId) {
+            $venues = Venue::where('owner_id', $ownerId)->get();
+            $resSchedules = [];
+            $tmpSchedule = [];
+            foreach ($venues as $venue) {
+                $venueId = $venue->id;
+                $courts = Court::where('venue_id', $venueId)->get();
+                foreach ($courts as $court) {
+                    
+                    $courtId = $court->id;
+                    if($date)
+                    {
+                    $date = strval($date);
+                    $sql = "SELECT *, DAYOFWEEK(date) AS day_of_week FROM `schedules` right join `transactions` on schedules.id = transactions.schedule_id WHERE court_id = ? AND date = '$date' AND availability = 1 AND status = 1";
+                    $schedules = DB::select($sql, [$courtId]);
+                    }
+                    else
+                    {
+                    $sql = "SELECT *, DAYOFWEEK(date) AS day_of_week FROM `schedules` right join `transactions` on schedules.id = transactions.schedule_id WHERE court_id = ? AND availability = 1 AND status = 1 ORDER BY date";
+                        $schedules = DB::select($sql, [$courtId]);
+                    }
+                    $schedules = DB::select($sql, [$courtId]);
+                    // $schedules = DB::select(DB::raw("SELECT *, DAYOFWEEK(date) AS day_of_week FROM `schedules` WHERE court_id = $courtId AND availability = 1 AND status = 1 ORDER BY date"));
+                    if (count($schedules) > 0) {
+                       
+                        foreach ($schedules as $i => $schedule) {
+                            $key = $i - 1;
+                            if (($key >= 0 && $schedule->date == $schedules[$key]->date) || $i == 0) {
+                                $scheduleData = new ScheduleResource($schedule);
+                                array_push($tmpSchedule, $scheduleData);
+
+                            } else {
+                                array_push(
+                                    $resSchedules,
+                                    [
+                                        "date" => $this->tgl_indo($schedules[$key]->date),
+                                        "dayOfWeek" => $schedules[$key]->day_of_week,
+                                        "schedule" => $tmpSchedule
+                                    ]
+                                );
+    
+                                $tmpSchedule = [];
+                                array_push($tmpSchedule, new ScheduleResource($schedule));
+                            }
+                        }
+    
+                        array_push(
+                            $resSchedules,
+                            [
+                                "date" => $this->tgl_indo($schedules[count($schedules) - 1]->date),
+                                "dayOfWeek" => $schedules[count($schedules) - 1]->day_of_week,
+                                "schedule" => $tmpSchedule
+                            ]
+                        );
+                    }
+                }
+            }
+
+            if (isset($resSchedules)) {
+                return response()->json([
+                    "data" => $resSchedules,
+                ]);
+            }
+
+            return response()->json([
+                "data" => []
+            ]);
+        }
+
+        return response()->json([
+            'status' => false,
+            'message' => "Invalid Parameters",
+            'data' => null,
+        ], 422);
+    }
+
+    public function index(Request $request)
+    {
+        $courtId = $request->query('courtId');
+        $startDate = $request->query('startDate');
+
+        $dayOfWeek = $request->query('dayOfWeek');
+
+        // $month = $request->query('month');
+        // $intervalMonth = $request->query('intervalMonth');
+
+        $availability = $request->query('availability');
+        $venueId = $request->query('venueId');
+        $ownerId = $request->query('ownerId');
+        $date = $request->query('date');
+        // if ($dayOfWeek && $month && $courtId) {
+        if ($dayOfWeek && $courtId) {
+            // if ($intervalMonth && $intervalMonth > 1) {
+            //     $month2 = $month + $intervalMonth;
+            //     $query = "MONTH(date) BETWEEN $month AND $month2";
+            // } else {
+            //     $query = "MONTH(date) = $month";
+            // }
+            $query = "date >= '$startDate'";
+            if ($availability) {
+                $schedules = DB::select(DB::raw("SELECT *, DAYOFWEEK(date) AS day_of_week FROM `schedules` WHERE availability = 1 AND status = 1 AND date > NOW() AND court_id = $courtId AND $query HAVING day_of_week = $dayOfWeek ORDER BY date, time_start"));
+            } else {
+                $schedules = DB::select(DB::raw("SELECT *, DAYOFWEEK(date) AS day_of_week FROM `schedules` WHERE date > NOW() AND court_id = $courtId AND $query HAVING day_of_week = $dayOfWeek ORDER BY date, time_start"));
+            }
+
             if (count($schedules) > 0) {
                 $resSchedules = [];
                 $tmpSchedule = [];
@@ -128,6 +316,84 @@ class ScheduleController extends Controller
 
                         $tmpSchedule = [];
                         array_push($tmpSchedule, new ScheduleResource($schedule));
+                    }
+                }
+
+                array_push(
+                    $resSchedules,
+                    [
+                        "date" => $this->tgl_indo($schedules[count($schedules) - 1]->date),
+                        "dayOfWeek" => $schedules[count($schedules) - 1]->day_of_week,
+                        "schedule" => $tmpSchedule
+                    ]
+                );
+                return response()->json([
+                    "data" => $resSchedules,
+                ]);
+            }
+            return response()->json([
+                "data" => []
+            ]);
+        } else if ($courtId) {
+            $sql = "SELECT *, DAYOFWEEK(date) AS day_of_week FROM `schedules` WHERE court_id = ? AND date > NOW() AND availability = 1 AND status = 1 ORDER BY date, time_start";
+            $schedules = DB::select($sql, [$courtId]);
+            // $schedules = DB::select(DB::raw("SELECT *, DAYOFWEEK(date) AS day_of_week FROM `schedules` WHERE court_id = $courtId AND availability = 1 AND status = 1 ORDER BY date, time_start"));
+            if (count($schedules) > 0) {
+                $resSchedules = [];
+                $tmpSchedule = [];
+                foreach ($schedules as $i => $schedule) {
+                    $key = $i - 1;
+                    if (($key >= 0 && $schedule->date == $schedules[$key]->date) || $i == 0) {
+                        $scheduleData = new stdClass;
+                        $scheduleData->id = $schedule->id;
+                        $scheduleData->date = $schedule->date;
+                        $scheduleData->timeStart = $schedule->time_start;
+                        $scheduleData->timeFinish = $schedule->time_finish;
+                        $scheduleData->interval = $schedule->interval;
+                        $scheduleData->availability = $schedule->availability;
+                        $scheduleData->price = $schedule->price;
+                        $scheduleData->status = $schedule->status;
+                        $scheduleData->courtId = $schedule->court_id;
+                        $scheduleData->status = $schedule->status;
+
+
+                        $court = Court::find($schedule->court_id);
+                        $scheduleData->courtName = $court->name;
+
+                        $courtImage = CourtImage::where('court_id', $court->id)->first();
+                        if(isset($courtImage))
+                            $scheduleData->courtImage = $courtImage->url;
+
+                        array_push($tmpSchedule, $scheduleData);
+                    } else {
+                        array_push(
+                            $resSchedules,
+                            [
+                                "date" => $this->tgl_indo($schedules[$key]->date),
+                                "dayOfWeek" => $schedules[$key]->day_of_week,
+                                "schedule" => $tmpSchedule
+                            ]
+                        );
+
+                        $tmpSchedule = [];
+
+                        $scheduleData = new stdClass;
+                        $scheduleData->id = $schedule->id;
+                        $scheduleData->date = $schedule->date;
+                        $scheduleData->timeStart = $schedule->time_start;
+                        $scheduleData->timeFinish = $schedule->time_finish;
+                        $scheduleData->interval = $schedule->interval;
+                        $scheduleData->availability = $schedule->availability;
+                        $scheduleData->price = $schedule->price;
+                        $scheduleData->status = $schedule->status;
+                        $scheduleData->courtId = $schedule->court_id;
+                        $scheduleData->status = $schedule->status;
+
+
+                        $court = Court::find($schedule->court_id);
+                        $scheduleData->courtName = $court->name;
+
+                        array_push($tmpSchedule, $scheduleData);
                     }
                 }
 
@@ -150,10 +416,10 @@ class ScheduleController extends Controller
             $courts = Court::where('venue_id', $venueId)->get();
             foreach ($courts as $court) {
                 $courtId = $court->id;
-                $sql = "SELECT *, DAYOFWEEK(date) AS day_of_week FROM `schedules` right join `transactions` on schedules.id = transactions.schedule_id WHERE court_id = ? AND availability = 1 AND status = 1 ORDER BY date";
+                $sql = "SELECT *, DAYOFWEEK(date) AS day_of_week FROM `schedules` right join `transactions` on schedules.id = transactions.schedule_id WHERE court_id = ? AND date > NOW() AND availability = 1 AND status = 1 ORDER BY date, time_start";
                 $schedules = DB::select($sql, [$courtId]);
 
-                // $schedules = DB::select(DB::raw("SELECT *, DAYOFWEEK(date) AS day_of_week FROM `schedules` WHERE court_id = $courtId AND availability = 1 AND status = 1 ORDER BY date"));
+                // $schedules = DB::select(DB::raw("SELECT *, DAYOFWEEK(date) AS day_of_week FROM `schedules` WHERE court_id = $courtId AND availability = 1 AND status = 1 ORDER BY date, time_start"));
                 if (count($schedules) > 0) {
                     $resSchedules = [];
                     $tmpSchedule = [];
@@ -240,19 +506,27 @@ class ScheduleController extends Controller
                 "data" => []
             ]);
         } else if ($ownerId) {
-           
             $venues = Venue::where('owner_id', $ownerId)->get();
             $resSchedules = [];
             $tmpSchedule = [];
             foreach ($venues as $venue) {
                 $venueId = $venue->id;
-
                 $courts = Court::where('venue_id', $venueId)->get();
                 foreach ($courts as $court) {
+                    
                     $courtId = $court->id;
-                    $sql = "SELECT *, DAYOFWEEK(date) AS day_of_week FROM `schedules` right join `transactions` on schedules.id = transactions.schedule_id WHERE court_id = ? AND availability = 1 AND status = 1 ORDER BY date";
+                    if($date)
+                    {
+                    $date = strval($date);
+                    $sql = "SELECT *, DAYOFWEEK(date) AS day_of_week FROM `schedules` right join `transactions` on schedules.id = transactions.schedule_id WHERE court_id = ? AND date = '$date' AND availability = 1 AND status = 1";
                     $schedules = DB::select($sql, [$courtId]);
-    
+                    }
+                    else
+                    {
+                    $sql = "SELECT *, DAYOFWEEK(date) AS day_of_week FROM `schedules` right join `transactions` on schedules.id = transactions.schedule_id WHERE court_id = ? AND availability = 1 AND status = 1 ORDER BY date";
+                        $schedules = DB::select($sql, [$courtId]);
+                    }
+                    $schedules = DB::select($sql, [$courtId]);
                     // $schedules = DB::select(DB::raw("SELECT *, DAYOFWEEK(date) AS day_of_week FROM `schedules` WHERE court_id = $courtId AND availability = 1 AND status = 1 ORDER BY date"));
                     if (count($schedules) > 0) {
                        

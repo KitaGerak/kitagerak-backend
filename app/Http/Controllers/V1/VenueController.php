@@ -14,9 +14,12 @@ use App\Models\Court;
 use App\Models\CourtType;
 use App\Models\User;
 use App\Models\Venue;
+use App\Models\VenueFacilities;
 use App\Models\VenueImage;
+use App\Models\VenueOpenDays;
 use App\Services\V1\VenueQuery;
 use Carbon\Carbon;
+use Exception;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
@@ -32,12 +35,16 @@ class VenueController extends Controller
 
     public function index(Request $request) {
         $includeCourts = $request->query('includeCourts');
+        $allowAllStatus = $request->query('allowAllStatus');
         $ownerId = $request->owner_id;
         
         $filter = new VenueQuery();
         $queryItems = $filter->transform($request); //[['column', 'operator', 'value']]
 
-        $res = Venue::where('venues.status', '<>', 0);
+        $res = new Venue();
+        if($allowAllStatus!=true || !isset($allowAllStatus))
+            $res = $res->where('venues.status', '<>', 0);
+            
         if ($includeCourts) {
             $this->courtTypeObj->withCourts = true;
             $res->with('courts');
@@ -115,13 +122,26 @@ class VenueController extends Controller
         // }
     }
 
-    public function show(Venue $venue, Request $request) {
-        $includeCourts = $request->query('includeCourts');
+    public function fetchImage(Venue $venue)
+    {
+        $venueImages = VenueImage::where('venue_id', $venue->id)->get();
+        $venueImages = $venueImages->pluck('url');
+        return response()->json(["data"=>$venueImages]);
+    }
 
-        if ($includeCourts) {
-            return new VenueResource($venue->loadMissing('courts'));
+    public function show(Venue $venue, Request $request) {
+        try {
+            $includeCourts = $request->query('includeCourts');
+    
+            if ($includeCourts) {
+                return new VenueResource($venue->loadMissing('courts'));
+            }
+
+            return new VenueResource($venue);
+        } catch (Exception $e)
+        {
+            return response()->json($e->getMessage());
         }
-        return new VenueResource($venue);
     }
 
     public function update(UpdateVenueRequest $request, Venue $venue) {
@@ -142,8 +162,57 @@ class VenueController extends Controller
 
     //StoreVenueRequest
     public function store(Request $request) {
-
         try {
+
+            $user = User::find($request->owner_id);
+
+            Mail::to($user->email)->send(new RegisterNewVenueMail());
+
+            $address = Address::create([
+                'street' => $request['address']['street'],
+                'city' => $request['address']['city'],
+                'province' => $request['address']['province'],
+                'postal_code' => $request['address']['postalCode'],
+                'longitude' => $request['address']['longitude'],
+                'latitude' => $request['address']['latitude'],
+            ]);
+            $venue = new VenueResource(Venue::create([
+                'name' => $request['name'],
+                'owner_id' => $request['owner_id'],
+                'image_url' => $request['image_url'],
+                'address_id' => $address['id'],
+                'status' => 0,
+                'open_hour' => Carbon::createFromFormat('H:i:s', '07:00:00'),
+                'close_hour' => Carbon::createFromFormat('H:i:s', '21:00:00'),
+                'interval' => 2,
+            ]));
+
+            try {
+                foreach (json_decode($request->facilities) as $index => $facility) {
+                    if(boolval($facility))
+                    {
+                        $venueFacility = new VenueFacilities();
+                        $venueFacility->venue_id = $venue->id;
+                        $venueFacility->facility_id = $index + 1;
+                        $venueFacility->save();
+                    }
+                }
+
+                foreach (json_decode($request->open_days) as $index => $open_day) {
+                    if(boolval($open_day))
+                    {
+                        $venueOpenDay = new VenueOpenDays();
+                        $venueOpenDay->venue_id = $venue->id;
+                        $venueOpenDay->day_of_week = $index + 1;
+                        $venueOpenDay->save();
+                    }
+                }
+                    
+            } catch (\Exception $e)
+            {
+                return response()->json($e->getMessage());
+            }
+
             if($request->hasFile('venueImages'))
             {
                 $venueImages = $request->venueImages;
@@ -160,42 +229,19 @@ class VenueController extends Controller
                     $path = Storage::disk('public')->put('venue_images', $file);
     
                     $newVenueImage = new VenueImage();
-                    $newVenueImage->venue_id = 99;
+                    $newVenueImage->venue_id = $venue['id'];
                     $newVenueImage->url = $path;
                     $newVenueImage->status = "Active";
                     $newVenueImage->save();
                 }
             }
 
-            $user = User::find($request->owner_id);
-
-            Mail::to($user->email)->send(new RegisterNewVenueMail());
-
-            $address = Address::create([
-                'street' => $request['address']['street'],
-                'city' => $request['address']['city'],
-                'province' => $request['address']['province'],
-                'postal_code' => $request['address']['postalCode'],
-                'longitude' => $request['address']['longitude'],
-                'latitude' => $request['address']['latitude'],
-            ]);
-            return new VenueResource(Venue::create([
-                'name' => $request['name'],
-                'owner_id' => $request['owner_id'],
-                'image_url' => $request['image_url'],
-                'address_id' => $address['id'],
-                'open_hour' => Carbon::createFromFormat('H:i:s', '07:00:00'),
-                'close_hour' => Carbon::createFromFormat('H:i:s', '21:00:00'),
-                'interval' => 2,
-            ]));
+            return $venue;
     
         } catch (\Exception $e)
         {
             return response()->json('Error : ' . $e->getMessage());
         }
-       
-
-       
     }
 
     public function bulkStore(BulkStoreVenueRequest $request) {
