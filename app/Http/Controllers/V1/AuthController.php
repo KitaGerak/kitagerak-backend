@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 
@@ -119,18 +120,30 @@ class AuthController extends Controller
 
     }
 
-    public function login(Request $request) {
-        if (Auth::attempt(['email' => $request->email, 'password' => $request->password])) {
+    public function login(Request $request, $loginWithGoogle = false) {
+        if ((Auth::attempt(['email' => $request->email, 'password' => $request->password])) || $loginWithGoogle == true) {
             $auth = Auth::user();
 
-            if($auth->email_verified_at == null)
-            {
+            if ($auth == null && $loginWithGoogle == true) {
+                $auth = User::where('email', $request->email)->where('status', 1)->first();
+            }
+
+            if($auth->email_verified_at == null) {
                 return response()->json([
                     'status' => false,
                     'message' => 'Autentikasi Gagal. Email anda belum terverifikasi!',
                     'data' => null,
                 ], 422);
             }
+
+            if ($auth->status != 1) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Akun telah dinonaktifkan',
+                    'data' => null,
+                ], 422);
+            }
+
             if ($auth->role_id == 2) {
                 $success['token'] = $auth->createToken('venue_owner_token'.$auth->id, ['view', 'create', 'update', 'delete'])->plainTextToken;
             } else {
@@ -153,6 +166,66 @@ class AuthController extends Controller
         return response()->json([
             'status' => false,
             'message' => 'Autentikasi Gagal',
+            'data' => null,
+        ], 422);
+    }
+
+    public function loginWithGoogle(Request $request) {
+
+        $validated = $request->validate([
+            'email' => 'required|email',
+            'name' => 'required',
+            'googleId' => 'required',
+            'photoUrl' => 'required'
+        ]);
+
+        $userRes = User::where('email', $validated['email'])->where('status', 1)->first();
+        if ($userRes == null) {
+            //insert akun baru
+            User::create([
+                'email' => $validated['email'],
+                'name' => $validated['name'],
+                'password' => null,
+                'email_verified_at' => DB::raw(NOW()),
+                'role_id' => 1,
+                'status' => 1,
+                'login_method_id' => 2,
+                'photo_url' => $validated['photoUrl'],
+            ]);
+            return $this->login($request, true);
+        } else {
+            if ($userRes->login_method_id == 2) { //login with google
+                //lakukan login
+                return $this->login($request, true);
+            } else {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Akun Anda sudah terdaftar menggunakan E-mail',
+                    'data' => null,
+                ], 422);
+            }
+        }
+    }
+
+    public function changeLoginMethod(Request $request) {
+        $validated = $request->validate([
+            'email' => 'required|email',
+            'name' => 'required',
+            'googleId' => 'required',
+            'photoUrl' => 'required'
+        ]);
+
+        $userRes = User::where('email', $validated['email'])->where('status', 1)->where('login_method_id', 1)->first();
+        if ($userRes != null) {
+            $userRes->password = null;
+            $userRes->login_method_id = 2;
+            $userRes->save();
+            return $this->login($request, true);
+        }
+
+        return response()->json([
+            'status' => false,
+            'message' => 'Akun tidak ditemukan',
             'data' => null,
         ], 422);
     }
