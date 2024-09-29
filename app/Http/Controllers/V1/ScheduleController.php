@@ -268,6 +268,33 @@ class ScheduleController extends Controller
         ], 422);
     }
 
+    // Change function name soon;
+    public function index2(Request $request) {
+        $courtId = $request->query('courtId');
+        
+        $dayOfWeek = $request->query('dayOfWeek');
+        $startDate = $request->query('startDate');
+        $monthInterval = $request->query('monthInterval');
+
+        $date = $request->query('date');
+        // SELECT *, DAYOFWEEK(date) AS day_of_week, availability, status FROM `schedules` WHERE date > NOW() AND court_id = 1 AND date <= DATE_ADD('2024-10-02', interval 1 MONTH) HAVING day_of_week = 4 ORDER BY date, time_start;
+        
+        if ($courtId != null && $dayOfWeek != null && $startDate != null && $monthInterval != null) {
+            $res = DB::Select("SELECT *, DAYOFWEEK(date) AS dayOfWeek, availability, status FROM `schedules` WHERE date > NOW() AND date >= ? AND court_id = ? AND date <= DATE_ADD(?, interval ? MONTH) HAVING dayOfWeek = ? ORDER BY date, time_start", [$startDate, $courtId, $startDate, $monthInterval, $dayOfWeek]);
+        } else if ($courtId != null && $date != null) {
+            $res = DB::Select("SELECT *, DAYOFWEEK(date) AS dayOfWeek, availability, status FROM `schedules` WHERE date > NOW() AND date >= ? AND court_id = ? ORDER BY date, time_start", [$date, $courtId]);
+        } else {
+            //error
+            return response()->json([
+                'status' => false,
+                // TODO: Change error message
+                'message' => 'Parameter tidak lengkap',
+            ], 422);
+        }
+
+        return $res;
+    }
+
     public function index(Request $request)
     {
         $courtId = $request->query('courtId');

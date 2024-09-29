@@ -13,7 +13,7 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('transaction_schedule_details', function (Blueprint $table) {
+        Schema::create('transaction_schedule_cancelation_histories', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('schedule_id');
             $table->unsignedBigInteger('transaction_id');

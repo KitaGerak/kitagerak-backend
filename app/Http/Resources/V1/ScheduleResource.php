@@ -38,22 +38,40 @@ class ScheduleResource extends JsonResource
     }
     public function toArray($request)
     {
-        $price = [
-            "member" => 0,
-            "daily" => 0,
-            "discountPrice" => NULL,
-        ];
-        if ($this->price == NULL) {
-            $courtPrice = CourtPrice::where('court_id', $this->court_id)->where('duration_in_hour', $this->interval)->get();
-            foreach ($courtPrice as $cp) {
-                if ($cp->is_member_price == 1) {
-                    $price['member'] = $cp->price;
-                } else {
-                    $price['daily'] = $cp->price;
-                }
-            }
+        // $price = [
+        //     "member" => 0,
+        //     "daily" => 0,
+        //     "discountPrice" => NULL,
+        // ];
+        // if ($this->price == NULL) {
+        //     $courtPrice = CourtPrice::where('court_id', $this->court_id)->where('duration_in_hour', $this->interval)->get();
+        //     foreach ($courtPrice as $cp) {
+        //         if ($cp->is_member_price == 1) {
+        //             $price['member'] = $cp->price;
+        //         } else {
+        //             $price['daily'] = $cp->price;
+        //         }
+        //     }
+        // } else {
+        //     $price["discountPrice"] = $this->price;
+        // }
+        
+        $offer = NULL;
+        if (isset($this->transaction) && str_contains($this->transaction->external_id, "DAILY")) {
+            $price = $this->regular_price;
+            $discount = $this->regular_discount;
+        } else if (isset($this->transaction) && str_contains($this->transaction->external_id, "MEMBER")){
+            $price = $this->member_price;
+            $discount = $this->member_discount;
         } else {
-            $price["discountPrice"] = $this->price;
+            $price = 0;
+            $discount = 0;
+            $offer = [
+                'memberPrice' => $this->member_price,
+                'regularPrice' => $this->regular_price,
+                'memberDiscount' => $this->member_discount,
+                'regularDiscount' => $this->regular_discount
+            ];
         }
 
         return [
@@ -62,9 +80,11 @@ class ScheduleResource extends JsonResource
             'timeStart' => $this->time_start,
             'timeFinish' => $this->time_finish,
             'interval' => $this->interval,
-            'availability' => $this->availability,
+            'availability' => (int)$this->availability,
             'price' => $price,
-            'status' => $this->status,
+            'discount' => $discount,
+            'offer' => $offer,
+            'status' => (int)$this->status,
             'courtId' => $this->court_id,
         ];
     }

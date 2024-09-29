@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\V1\StoreTransactionRequest;
 use App\Http\Requests\V1\UpdateTransactionRequest;
+use App\Http\Resources\V1\ScheduleCollection;
 use App\Http\Resources\V1\TransactionCollection;
 use App\Http\Resources\V1\TransactionResource;
 use App\Models\BalanceWithdrawalDetail;
@@ -20,7 +21,6 @@ use App\Models\VenueOwnerBalance;
 use App\Services\V1\TransactionQuery;
 use DateInterval;
 use DateTime;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 
@@ -34,7 +34,7 @@ class TransactionController extends Controller
             $filter = new TransactionQuery();
             $queryItems = $filter->transform($request); //[['column', 'operator', 'value']]
 
-            $res = Transaction::select('*')->with('schedule')->with('court')->with('transactionStatus');
+            $res = Transaction::select('*')->with('schedules')->with('court')->with('transactionStatus');
 
             if (count($queryItems) > 0) {
                 $res->leftJoin('transaction_statuses', 'transaction_statuses.id', '=', 'transactions.transaction_status_id')->where($queryItems);
@@ -56,13 +56,14 @@ class TransactionController extends Controller
     }
 
     public function show(Transaction $transaction) {
+        return $transaction;
         if (auth('sanctum')->check()){
             $userIdAuth = auth('sanctum')->user()->id;
 
             if (auth('sanctum')->user()->role_id == 1) {
-                return new TransactionResource($transaction->loadMissing('schedule')->loadMissing('court')->loadMissing('transactionStatus'));
+                return new TransactionResource($transaction->loadMissing('schedules')->loadMissing('court')->loadMissing('transactionStatus'));
             } else if ($transaction->user_id && $userIdAuth == $transaction->user_id) {
-                return new TransactionResource($transaction->loadMissing('schedule')->loadMissing('court')->loadMissing('transactionStatus'));
+                return new TransactionResource($transaction->loadMissing('schedules')->loadMissing('court')->loadMissing('transactionStatus'));
             }
         }
         
@@ -125,6 +126,97 @@ class TransactionController extends Controller
         return $response;
     }
 
+    public function checkSchedules(Request $request) {
+        $dayOfWeeks = "";
+        $timeStart = "";
+        $timeFinish = "";
+
+        if ($request->startDate != null && $request->monthInterval != null && $request->schedules != null) {
+            foreach ($request->schedules as $i=>$schedule) {
+                if ($i != count($request->schedules) - 1) {
+                    $dayOfWeeks .= "'" . $schedule['dayOfWeek'] . "'" . ",";
+                } else {
+                    $dayOfWeeks .= "'" . $schedule['dayOfWeek'] . "'";
+                }
+                foreach($schedule['times'] as $j=>$time) {
+                    $tm = explode("-", $time);
+                    if ($j != count($schedule['times']) - 1) {
+                        $timeStart .= "'" . $tm[0] . "'" . ", ";
+                        $timeFinish .= "'" . $tm[1] . "'" . ", ";
+                    } else {
+                        $timeStart .= "'" . $tm[0] . "'";
+                        $timeFinish .= "'" . $tm[1] . "'";
+                    }
+                }
+            }
+
+            $res = DB::Select("SELECT *, DAYOFWEEK(date) AS dayOfWeek FROM `schedules` WHERE date > NOW() AND date >= ? AND court_id = ? AND date <= DATE_ADD(?, interval ? MONTH) AND availability = 1 AND status = 1 AND time_start IN ($timeStart) AND time_finish IN ($timeFinish) HAVING dayOfWeek IN ($dayOfWeeks) ORDER BY date, time_start", [$request->startDate, $request->courtId, $request->startDate, $request->monthInterval]);
+        } else if ($request->scheduleIds != null) {
+            $scheduleIds = "";
+            foreach ($request->scheduleIds as $i=>$scheduleId) {
+                if ($i != count($request->scheduleIds) - 1) {
+                    $scheduleIds .= $scheduleId . ", ";
+                } else {
+                    $scheduleIds .= $scheduleId;
+                }
+            }
+
+            $res = DB::Select("SELECT *, DAYOFWEEK(date) AS dayOfWeek FROM `schedules` WHERE id IN ($scheduleIds)");
+        } else {
+            return response()->json([
+                'status' => false,
+                'message' => "Parameter tidak lengkap",
+            ], 422);
+        }
+
+        return new ScheduleCollection($res);
+    }
+
+    public function store2(Request $request) {
+        $scheduleIds = "";
+        foreach ($request->scheduleIds as $i=>$scheduleId) {
+            if ($i != count($request->scheduleIds) - 1) {
+                $scheduleIds .= $scheduleId . ", ";
+            } else {
+                $scheduleIds .= $scheduleId;
+            }
+        }
+
+        $unavailableSchedule = DB::Select("SELECT COUNT(*) AS `countUnavailableSchedule` FROM `schedules` WHERE id IN ($scheduleIds) AND (availability = 0 OR status = 0)");
+        $courtIdCount = DB::Select("SELECT COUNT(DISTINCT(court_id)) AS courtIdCount FROM `schedules` WHERE id IN ($scheduleIds)"); //Cara untuk cek apakah user pesan dari court yang sama / tidak. Jika tidak, TOLAK
+
+        if ($unavailableSchedule[0]->countUnavailableSchedule == 0 && $courtIdCount[0]->courtIdCount == 1) {
+            $type = "";
+            $query = "";
+            if ($request->type == "member") {
+                $type = "MEMBER";
+                $query = "member_price - member_price * member_discount";
+            } else {
+                $type = "DAILY";
+                $query = "regular_price - regular_price * regular_discount";
+            }
+
+            $insertedTransaction = Transaction::create([
+                'external_id' => $type . "_" . rand(),
+                'user_id' => $request->userId,
+                'amount_rp' => -1,
+                'transaction_status_id' => 5,
+            ]);
+
+            DB::statement("UPDATE `schedules` SET transaction_id = $insertedTransaction->id, availability = 0 WHERE id IN ($scheduleIds)");
+            
+            DB::statement("UPDATE `transactions` SET amount_rp = (SELECT SUM($query) AS amount_rp FROM `schedules` WHERE transaction_id = $insertedTransaction->id), schedule_id = " . $request->scheduleIds[0] . " WHERE id = $insertedTransaction->id");
+
+            return new TransactionResource($insertedTransaction);
+        } else {
+            return response()->json([
+                'status' => false,
+                'message' => "Maaf, ada jadwal yang tidak tersedia [Mungkin keduluan orang lain]",
+            ], 422);
+        }
+    }
+
+    // TODO: remove this code
     public function store(StoreTransactionRequest $request) {
         
         if (isset($request->userId) && isset($request->scheduleId)) {
@@ -198,6 +290,7 @@ class TransactionController extends Controller
 
     }
 
+    // TODO: remove this code
     private function getAvailMemberSchedules($request, $courtId) {
         $query = "SELECT *, DAYOFWEEK(date) AS day_of_week FROM `schedules` WHERE availability = 1 AND status = 1 AND court_id = $courtId AND date >= '$request->dateStart' HAVING ";
         $query .= "(";
@@ -230,6 +323,7 @@ class TransactionController extends Controller
         return DB::select(DB::raw($query));
     }
 
+    // TODO: remove this code
     private function getUnAvailMemberSchedules($request, $courtId) {
         $query = "SELECT DISTINCT court_id, date, DAYOFWEEK(date) AS day_of_week FROM `schedules` WHERE court_id = $courtId AND date >= '$request->dateStart' HAVING ";
         $query .= "(";
@@ -284,6 +378,7 @@ class TransactionController extends Controller
         return $pecahkan[2] . ' ' . $bulan[(int)$pecahkan[1]] . ' ' . $pecahkan[0];
     }
 
+    //TODO : remove this code
     public function bulkStore(Request $request) 
     { //UNTUK DAFTAR MEMBER
         if (isset($request->userId) && isset($request->schedules) && isset($request->dateStart) && isset($request->month)) {
@@ -383,6 +478,7 @@ class TransactionController extends Controller
         ]);
     }
 
+    // TODO: remove this code
     public function cancelSchedule(Transaction $transaction) {
         if (auth('sanctum')->check()){
             $userIdAuth = auth('sanctum')->user();

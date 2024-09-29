@@ -19,6 +19,7 @@ return new class extends Migration
             $table->integer('duration_in_hour');
             $table->integer('price');
             $table->boolean('is_member_price');
+            $table->string('special_price_for');
             $table->timestamps();
         });
     }
