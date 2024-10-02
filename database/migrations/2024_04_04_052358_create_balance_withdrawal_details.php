@@ -19,6 +19,7 @@ return new class extends Migration
             $table->unsignedBigInteger('user_id');
             $table->dateTime('withdrawal_date_time')->default(DB::raw('CURRENT_TIMESTAMP'));
             $table->integer('amount');
+            $table->string('info');
             $table->integer('status');
             $table->foreign('user_id')->references('id')->on('users');
             $table->timestamps();

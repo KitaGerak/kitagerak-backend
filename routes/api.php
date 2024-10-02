@@ -79,13 +79,9 @@ Route::group(['prefix' => 'v1'], function() {
 
         Route::group(['prefix' => 'schedules'], function() {
             Route::get('/', [ScheduleController::class, "index"]);
-            
-            // TODO: Temporary:
-            Route::get('/i2', [ScheduleController::class, "index2"]);
-
-            Route::get('/renter', [ScheduleController::class, "getScheduleForCustomer"]);
+            // Route::get('/renter', [ScheduleController::class, "getScheduleForCustomer"]);
             Route::post('/', [ScheduleController::class, "store"]);
-            Route::post('/bulkStore', [ScheduleController::class, "bulkStore"]);
+            // Route::post('/bulkStore', [ScheduleController::class, "bulkStore"]);
             Route::put('/{schedule:id}', [ScheduleController::class, "update"]);
             Route::patch('/{schedule:id}', [ScheduleController::class, "update"]);
             Route::delete('/{schedule:id}', [ScheduleController::class, "destroy"]);
@@ -96,15 +92,13 @@ Route::group(['prefix' => 'v1'], function() {
             Route::get('/', [TransactionController::class, "index"]);
             Route::get('/{transaction:external_id}', [TransactionController::class, "show"]);
             
-            // TODO: remove this code
-            // Route::post('/', [TransactionController::class, "store"]);
+            Route::post('/checkSchedules', [TransactionController::class, "checkSchedules"]); // untuk cek / konfirmasi jadwal sebelum setuju memesan
+            Route::post('/', [TransactionController::class, "store"]);
             
-            Route::post('/checkSchedules', [TransactionController::class, "checkSchedules"]);
-            Route::post('/str2', [TransactionController::class, "store2"]);
-            
-            Route::post('/bulkStore', [TransactionController::class, "bulkStore"]);
+            Route::post('/{transaction:external_id}/cancelConfirmation', [TransactionController::class, "checkTransactionCancelation"]); // untuk cek / konfirmasi bisa melakukan pembatalan / tidak beserta alsannya
             Route::post('/{transaction:external_id}/cancel', [TransactionController::class, "cancelSchedule"]);
-            // Route::patch('/{transaction:external_id}', [TransactionController::class, "update"]);
+            
+            Route::patch('/{transaction:external_id}', [TransactionController::class, "update"]);
         });
 
         Route::group(['prefix' => 'balances'], function() {
