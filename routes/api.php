@@ -96,7 +96,7 @@ Route::group(['prefix' => 'v1'], function() {
             Route::post('/', [TransactionController::class, "store"]);
             
             Route::post('/{transaction:external_id}/cancelConfirmation', [TransactionController::class, "checkTransactionCancelation"]); // untuk cek / konfirmasi bisa melakukan pembatalan / tidak beserta alsannya
-            Route::post('/{transaction:external_id}/cancel', [TransactionController::class, "cancelSchedule"]);
+            Route::post('/{transaction:external_id}/cancel', [TransactionController::class, "cancelTransaction"]);
             
             Route::patch('/{transaction:external_id}', [TransactionController::class, "update"]);
         });

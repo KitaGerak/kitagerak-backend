@@ -4,17 +4,14 @@ namespace App\Http\Controllers\V1;
 
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\V1\StoreTransactionRequest;
 use App\Http\Requests\V1\UpdateTransactionRequest;
 use App\Http\Resources\V1\ScheduleCollection;
 use App\Http\Resources\V1\TransactionCollection;
 use App\Http\Resources\V1\TransactionResource;
 use App\Models\BalanceWithdrawalDetail;
-use App\Models\CourtPrice;
 use App\Models\Fee;
 use App\Models\Schedule;
 use App\Models\Transaction;
-use App\Models\TransactionScheduleDetail;
 use App\Models\TransactionStatus;
 use App\Models\User;
 use App\Models\UserBalance;
@@ -171,6 +168,21 @@ class TransactionController extends Controller
     }
 
     public function store(Request $request) {
+
+        $checkUserSanctum = $this->checkUserSanctum($request->userId);
+
+        if ($checkUserSanctum == 0) {
+            return response()->json([
+                'status' => false,
+                'message' => "Unauthenticated.",
+            ], 422);
+        } else if ($checkUserSanctum == -4 || auth('sanctum')->user()->role_id != 1) {
+            return response()->json([
+                'status' => false,
+                'message' => "Akun Anda tidak dapat melakukan pemesanan",
+            ], 422);
+        }
+
         $scheduleIds = "";
         foreach ($request->scheduleIds as $i=>$scheduleId) {
             if ($i != count($request->scheduleIds) - 1) {
@@ -183,6 +195,8 @@ class TransactionController extends Controller
         $unavailableSchedule = DB::Select("SELECT COUNT(*) AS `countUnavailableSchedule` FROM `schedules` WHERE id IN ($scheduleIds) AND (availability = 0 OR status = 0)");
         $courtIdCount = DB::Select("SELECT COUNT(DISTINCT(court_id)) AS courtIdCount FROM `schedules` WHERE id IN ($scheduleIds)"); //Cara untuk cek apakah user pesan dari court yang sama / tidak. Jika tidak, TOLAK
 
+       
+
         if ($unavailableSchedule[0]->countUnavailableSchedule == 0 && $courtIdCount[0]->courtIdCount == 1) {
             $type = "";
             $query = "";
@@ -194,8 +208,11 @@ class TransactionController extends Controller
                 $query = "regular_price - regular_price * regular_discount";
             }
 
+            $externalId = $type . "_" . rand();
+            $user = auth('sanctum')->user();
+
             $insertedTransaction = Transaction::create([
-                'external_id' => $type . "_" . rand(),
+                'external_id' => $externalId,
                 'user_id' => $request->userId,
                 'amount_rp' => -1,
                 'transaction_status_id' => 5,
@@ -255,10 +272,19 @@ class TransactionController extends Controller
     private function checkCancelation($transaction) {
         $currentUser = $this->checkUserSanctum($transaction->user_id);
 
-        $countTransaction = DB::select("SELECT COUNT(DISTINCT(transaction_id)) AS countTransaction FROM `transaction_schedule_cancelation_histories` h LEFT JOIN `transactions` t ON t.id = h.transaction_id WHERE t.user_id = $transaction->user_id AND h.created_at BETWEEN DATE_SUB(NOW(), INTERVAL 30 DAY) AND NOW()");
+        if ($currentUser != -4) {
+            $check = DB::Select("SELECT COUNT(t.id) AS countTransactions FROM `schedules` s LEFT JOIN `transactions` t ON s.transaction_id = t.id LEFT JOIN `courts` c ON c.id = s.court_id LEFT JOIN `venues` v ON v.id = c.venue_id WHERE t.id = $transaction->id AND (t.user_id = $currentUser OR v.owner_id = $currentUser) ORDER BY s.date ASC, s.time_start ASC LIMIT 1;")[0];            
+            if ($check->countTransactions <= 0) {    
+                return -2; 
+            }
+        }
 
-        if ((!isset($countTransaction[0]->courtTransaction) && $countTransaction[0]->countTransaction < 5) || $currentUser == -4) { //currentUser -4 = Admin
-            $firstSchedule = DB::Select("SELECT CONCAT(date, ' ', time_start) AS dateTime, t.external_id AS externalId, t.user_id AS userId FROM `schedules` s LEFT JOIN `transactions` t ON s.transaction_id = t.id LEFT JOIN `courts` c ON c.id = s.court_id LEFT JOIN `venues` v ON v.id = c.venue_id WHERE s.transaction_id = $transaction->id OR v.owner_id = $currentUser ORDER BY s.date ASC, s.time_start ASC LIMIT 1;")[0];
+        $countTransaction = DB::select("SELECT COUNT(DISTINCT(transaction_id)) AS countTransaction FROM `transaction_schedule_cancelation_histories` h LEFT JOIN `transactions` t ON t.id = h.transaction_id WHERE t.user_id = $transaction->user_id AND h.created_at BETWEEN DATE_SUB(NOW(), INTERVAL 30 DAY) AND NOW()")[0];
+                
+        //cek apakah user ybs sudah punya catatan pembatalan lebih dari 5x sepanjang bulan ini?
+        if ((!isset($countTransaction->courtTransaction) && $countTransaction->countTransaction < 5) || $currentUser == -4) { //currentUser -4 = Admin
+            
+            $firstSchedule = DB::Select("SELECT CONCAT(date, ' ', time_start) AS dateTime, t.external_id AS externalId, t.user_id AS userId FROM `schedules` s LEFT JOIN `transactions` t ON s.transaction_id = t.id WHERE s.transaction_id = $transaction->id ORDER BY s.date ASC, s.time_start ASC LIMIT 1;")[0];
                 
             $dateTimeNow1d = date('Y-m-d H:i:s', strtotime('+1 days'));
             $dateTimeNow = date('Y-m-d H:i:s');
@@ -269,7 +295,7 @@ class TransactionController extends Controller
                 } else { // bulanan / member
                     return 0.5;
                 }
-            } else if (strtotime($firstSchedule->dateTime) < strtotime($dateTimeNow1d) && strtotime($firstSchedule->dateTime) > strtotime($dateTimeNow) && ($firstSchedule->userId == $transaction->user_id || $currentUser == -4)) { //pengembalian 50% dan harus customer yang melakukan pembatalan. Kalau sudah kurang dari 24 jam, pemilik lapangan tidak bisa melakukan pembatalan! || currentUser -4 = Admin
+            } else if (strtotime($firstSchedule->dateTime) < strtotime($dateTimeNow1d) && strtotime($firstSchedule->dateTime) > strtotime($dateTimeNow) && ($firstSchedule->userId == $transaction->user_id || $currentUser == -4)) { //pengembalian 50% dan harus customer / Admin yang melakukan pembatalan. Kalau sudah kurang dari 24 jam, pemilik lapangan tidak bisa melakukan pembatalan! || currentUser -4 = Admin
                 if (str_contains($firstSchedule->externalId, 'DAILY')) { //harian
                     return 0.5;
                 } else { // bulanan / member
@@ -280,7 +306,7 @@ class TransactionController extends Controller
             }
         } else {
             return -1;
-        }
+        }      
     }
 
 
@@ -311,7 +337,7 @@ class TransactionController extends Controller
     }
 
 
-    public function cancelSchedule(Transaction $transaction) {
+    public function cancelTransaction(Transaction $transaction) {
         $refundPercentage = $this->checkCancelation($transaction);
 
         if ($transaction->transaction_status_id == 3) {
