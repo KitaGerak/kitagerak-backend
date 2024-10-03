@@ -14,9 +14,13 @@ class Transaction extends Model
         'id'
     ];
 
-    public function schedule() {
-        return $this->belongsTo(Schedule::class);
+    public function schedules() {
+        return $this->hasMany(Schedule::class);
     }
+
+    // public function schedule() {
+    //     return $this->belongsTo(Schedule::class);
+    // }
 
     public function court():HasOneThrough {
         return $this->hasOneThrough(Court::class, Schedule::class, 'id', 'id', 'schedule_id', 'court_id');

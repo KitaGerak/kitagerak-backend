@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\V1\AccountController;
 use App\Http\Controllers\V1\AuthController;
+use App\Http\Controllers\V1\BalanceController;
 use App\Http\Controllers\V1\CourtController;
 use App\Http\Controllers\V1\CourtTypeController;
 use App\Http\Controllers\V1\InvoiceController;
@@ -35,6 +36,7 @@ Route::group(['prefix' => 'v1'], function() {
     Route::group(['prefix' => 'venues'], function() {
         Route::get('/', [VenueController::class, "index"]);
         Route::get('/{venue:id}', [VenueController::class, "show"]);
+        Route::get('fetchImages/{venue:id}', [VenueController::class, "fetchImage"]);
         Route::post('/', [VenueController::class, "store"]);
 
     });
@@ -42,6 +44,14 @@ Route::group(['prefix' => 'v1'], function() {
     Route::group(['prefix' => 'courts'], function() {
         Route::get('/', [CourtController::class, "index"]);
         Route::get('/{court:id}', [CourtController::class, "show"]);
+    });
+
+    Route::group(['prefix' => 'account'], function() {
+        Route::group(['prefix' => 'forgotPassword'], function() {
+            Route::post('/', [AccountController::class, "generateCode"]);
+            Route::post('/verifyCode', [AccountController::class, "verifyCode"]);
+            Route::post('/changePassword', [AccountController::class, "changePassword"]);
+        });
     });
 
     Route::group(['middleware' => 'auth:sanctum'], function() {
@@ -60,6 +70,7 @@ Route::group(['prefix' => 'v1'], function() {
 
         Route::group(['prefix' => 'courts'], function() {
             Route::post('/', [CourtController::class, "store"]);
+            Route::post('/{court:id}/insertPrices', [CourtController::class, "insertPrices"]);
             Route::post('/{court:id}/updateImages', [CourtController::class, "updateImages"]);
             Route::put('/{court:id}', [CourtController::class, "update"]);
             Route::patch('/{court:id}', [CourtController::class, "update"]);
@@ -67,8 +78,10 @@ Route::group(['prefix' => 'v1'], function() {
         });
 
         Route::group(['prefix' => 'schedules'], function() {
+            Route::get('/', [ScheduleController::class, "index"]);
+            // Route::get('/renter', [ScheduleController::class, "getScheduleForCustomer"]);
             Route::post('/', [ScheduleController::class, "store"]);
-            Route::post('/bulkStore', [ScheduleController::class, "bulkStore"]);
+            // Route::post('/bulkStore', [ScheduleController::class, "bulkStore"]);
             Route::put('/{schedule:id}', [ScheduleController::class, "update"]);
             Route::patch('/{schedule:id}', [ScheduleController::class, "update"]);
             Route::delete('/{schedule:id}', [ScheduleController::class, "destroy"]);
@@ -78,9 +91,18 @@ Route::group(['prefix' => 'v1'], function() {
         Route::group(['prefix' => 'transactions'], function() {
             Route::get('/', [TransactionController::class, "index"]);
             Route::get('/{transaction:external_id}', [TransactionController::class, "show"]);
+            
+            Route::post('/checkSchedules', [TransactionController::class, "checkSchedules"]); // untuk cek / konfirmasi jadwal sebelum setuju memesan
             Route::post('/', [TransactionController::class, "store"]);
-            Route::post('/bulkStore', [TransactionController::class, "bulkStore"]);
+            
+            Route::post('/{transaction:external_id}/cancelConfirmation', [TransactionController::class, "checkTransactionCancelation"]); // untuk cek / konfirmasi bisa melakukan pembatalan / tidak beserta alsannya
+            Route::post('/{transaction:external_id}/cancel', [TransactionController::class, "cancelTransaction"]);
+            
             Route::patch('/{transaction:external_id}', [TransactionController::class, "update"]);
+        });
+
+        Route::group(['prefix' => 'balances'], function() {
+            Route::get('/{user:id}', [BalanceController::class, "index"]);
         });
 
         Route::group(['prefix' => 'ratings'], function() {
@@ -107,12 +129,11 @@ Route::group(['prefix' => 'v1'], function() {
             Route::get('/get-employees/{ownerId}', [VenueOwnerController::class, "getEmployees"]);
         });
 
-        Route::get('schedules/', [ScheduleController::class, "index"]);
-
     });
 
     Route::post('/register', [AuthController::class, "register"]);
     Route::post('/login', [AuthController::class, "login"]);
+    Route::post('/loginWithGoogle', [AuthController::class, "loginWithGoogle"]);
 });
 
 Route::post('/payments/webhook/xendit', [PaymentWebhookController::class, "xenditWebhook"]);

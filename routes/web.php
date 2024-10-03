@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\V1\ImageController;
 use App\Http\Controllers\V1\ScheduleController;
+use App\Http\Controllers\VenueController;
 use App\Http\Controllers\VerifyEmailController;
 use GuzzleHttp\Psr7\Request;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
@@ -27,9 +28,15 @@ Route::get('/', function () {
     return "KitaGerak API";
 });
 
+Route::get('/', function () {
+    return view('layouts.light');
+});
+
 Route::get('/verified', function () {
     return "Berhasil verifikasi email! Silahkan kembali ke aplikasi KitaGerak...";
 });
+
+
 Route::get('/test', [ScheduleController::class, "generateSchedule"]);
 Route::get('/images/{fileName}', [ImageController::class, "show"]);
 
@@ -37,3 +44,19 @@ Route::get('/email/verify/{id}/{hash}', [VerifyEmailController::class, '__invoke
 
 Auth::routes(['verify' => true]);
 Route::get('/images/{folder}/{fileName?}', [ImageController::class, "show"]);
+
+Route::get('/payment-success', function() {
+    //TODO:: Create an UI
+    return "Pembayaran Berhasil";
+});
+
+Route::get('/payment-failed', function() {
+    //TODO:: Create an UI
+    return "Pembayaran Gagal";
+});
+
+Route::group(['prefix' => 'venues'], function(){
+    Route::get('/', [VenueController::class, 'index']);
+    Route::get('/{venueId}/detail', [VenueController::class, 'detail']);
+    Route::post('/{venueId}/accept', [VenueController::class, 'acceptVenueRegistration']);
+});
