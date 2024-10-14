@@ -12,26 +12,65 @@ use App\Models\Rating;
 use App\Models\RatingPhoto;
 use App\Models\Schedule;
 use App\Models\Transaction;
+use App\Services\V1\RatingQuery;
 
 class RatingController extends Controller
 {
 
     public function index(Request $request) {
         if (auth('sanctum')->check()){
-            $userIdAuth = auth('sanctum')->user()->id;
-            $userId = $request->query('user_id');
-            
-            if (auth('sanctum')->user()->role_id == 1) {
-                return new RatingCollection(Rating::paginate(10)->withQueryString());
-            } if ($userId && $userIdAuth == $userId) {
-                return new RatingCollection(Rating::where('user_id', $userId)->paginate(10)->withQueryString());
+            $userAuth = auth('sanctum')->user();
+
+            $userId = $request->query('userId');
+            $ownerId = $request->query('ownerId');
+
+            if ($userAuth->role_id != 3) { //bukan admin
+                if ($userAuth->role_id == 1) { //user - penyewa lapangan
+                    if ($userId == null) {
+                        return response()->json([
+                            "status" => 0,
+                            "message" => "Must specify user id"
+                        ]);
+                    }
+        
+                    if ($userId != $userAuth->id) {
+                        return response()->json([
+                            "status" => 0,
+                            "message" => "Dilarang mengambil data user lain"
+                        ]);
+                    }
+                } else if ($userAuth->role_id == 2) { //pemilik lapangan
+                    if ($ownerId == null) {
+                        return response()->json([
+                            "status" => 0,
+                            "message" => "Must specify owner id"
+                        ]);
+                    }
+        
+                    if ($ownerId != $userAuth->id) {
+                        return response()->json([
+                            "status" => 0,
+                            "message" => "Dilarang mengambil data owner lain"
+                        ]);
+                    }
+                }
             }
+
+            $filter = new RatingQuery();
+            $queryItems = $filter->transform($request); //[['column', 'operator', 'value']]
+
+            $res = Transaction::select('ratings.*');
+
+            if (count($queryItems) > 0) {
+                $res = $res->leftJoin('users as u1', 'u1.id', 'ratings.user_id')->leftJoin('courts as c', 'c.id', 'ratings.court_id')->leftJoin('venues as v', 'v.id', 'c.venue_id')->leftJoin('users as u2', 'u2.id', 'v.owner_id')->where($queryItems);
+            }
+
+            return new RatingCollection($res->paginate(20)->withQueryString());
         }
 
         return response()->json([
             'status' => false,
-            'message' => "User ID Required",
-            'data' => null,
+            'message' => "Unauthenticated",
         ], 422);
     }
 
@@ -71,10 +110,13 @@ class RatingController extends Controller
             'sum_rating' => $courtRating,
             'number_of_people' => $courtNumberVote,
         ]);
+
+        $this->uploadFile($request, $res->id);
+
         return $res;
     }
 
-    public function storePhoto(Request $request, Rating $rating) {
+    private function uploadFile($request, $ratingId) {
         if ($request->has('files')) {
             $files = $request->file('files');
 
@@ -94,9 +136,9 @@ class RatingController extends Controller
             if(count($invalidFile) == 0) {
                 $successFile = [];
                 foreach($files as $file) {
-                    $fileName = $file->store('private/images/ratings');
+                    $fileName = $file->store("private/images/ratings/$ratingId");
                     RatingPhoto::create([
-                        'rating_id' => $rating->id,
+                        'rating_id' => $ratingId,
                         'url' => $fileName,
                     ]);
                     array_push($successFile, $fileName);

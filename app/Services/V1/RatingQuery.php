@@ -4,19 +4,15 @@ namespace App\Services\V1;
 
 use Illuminate\Http\Request;
 
-class TransactionQuery {
+class RatingQuery {
     protected $safeParms = [
-        'transactionStatus' => ['eq'],
         'userId' => ['eq'],
         'ownerId' => ['eq'],
-        'courtId' => ['eq'],
     ];
 
     protected $columnMap = [
-        'transactionStatus' => 'ts.status',
         'userId' => 'u1.id',
         'ownerId' => 'u2.id',
-        'courtId' => 'c.id'
     ];
 
     protected $operatorMap = [

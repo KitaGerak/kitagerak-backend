@@ -22,7 +22,7 @@ class UserResource extends JsonResource
             "phoneNumber" => $this->whenLoaded('phone_number'),
             "role" => new RoleResource($this->whenLoaded('role')),
             "status" => $this->whenLoaded('status'),
-            "balance" => $this->whenLoaded('balance'),
+            "balance" => $this->balance,
             "employees" => new UserCollection($this->whenLoaded('employees')),
         ];
     }

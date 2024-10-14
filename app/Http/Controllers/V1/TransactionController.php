@@ -26,8 +26,8 @@ class TransactionController extends Controller
             $userId = $request->query('userId')["eq"];
             $ownerId = $request->query('ownerId')["eq"];
 
-            if ($userAuth->role_id != 3) {
-                if ($userAuth->role_id == 1) {
+            if ($userAuth->role_id != 3) { //bukan admin
+                if ($userAuth->role_id == 1) { //user - penyewa lapangan
                     if ($userId == null) {
                         return response()->json([
                             "status" => 0,

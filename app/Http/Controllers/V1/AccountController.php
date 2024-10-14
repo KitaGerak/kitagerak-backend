@@ -58,7 +58,21 @@ class AccountController extends Controller
     }
 
     public function show(User $user) {
-        return new UserResource($user);
+        if (auth('sanctum')->check()){
+            $userAuth = auth('sanctum')->user();
+            if ($userAuth->role_id != 3) { //bukan admin  
+                if ($user->id != $userAuth->id) {
+                    return response()->json([
+                        "status" => 0,
+                        "message" => "Dilarang mengambil data user lain"
+                    ]);
+                }
+            }
+        }
+        // return new UserResource($user);
+        return response()->json([
+            'data' => $user
+        ]);
     }
 
     public function updateData(Request $request, User $user) {

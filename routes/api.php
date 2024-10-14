@@ -99,14 +99,9 @@ Route::group(['prefix' => 'v1'], function() {
             Route::patch('/{transaction:external_id}', [TransactionController::class, "update"]);
         });
 
-        // Route::group(['prefix' => 'balances'], function() {
-        //     Route::get('/{user:id}', [BalanceController::class, "index"]);
-        // });
-
         Route::group(['prefix' => 'ratings'], function() {
             Route::get('/', [RatingController::class, "index"]);
             Route::post('/', [RatingController::class, "store"]);
-            Route::post('/{rating:id}', [RatingController::class, "storePhoto"]);
         });
 
         Route::group(['prefix' => 'account'], function() {
