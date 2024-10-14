@@ -409,7 +409,7 @@ class AccountController extends Controller
         if (auth('sanctum')->check()) {
             $userAuth = auth('sanctum')->user();
             if ($userAuth->id == $ownerId) {
-                return new UserCollection(User::where('id', $ownerId)->with("employees")->get());       
+                return new UserCollection(User::where('id', $ownerId)->with("employees")->get());
             }
         }
 

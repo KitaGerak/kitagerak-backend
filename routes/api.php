@@ -24,17 +24,11 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-// Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-//     return $request->user();
-// });
-
-
 Route::group(['prefix' => 'v1'], function() {
 
     Route::group(['prefix' => 'venues'], function() {
         Route::get('/', [VenueController::class, "index"]);
         Route::get('/{venue:id}', [VenueController::class, "show"]);
-        Route::get('fetchImages/{venue:id}', [VenueController::class, "fetchImage"]);
         Route::post('/', [VenueController::class, "store"]);
 
     });
@@ -108,24 +102,9 @@ Route::group(['prefix' => 'v1'], function() {
             Route::get('/{user:id}', [AccountController::class, "show"]);
             Route::post('/updateData/{user:id}', [AccountController::class, "updateData"]);
         });
+
+        Route::get('/users/{ownerId}/employees', [AccountController::class, "getEmployees"]);
         
-        Route::group(['prefix' => 'admin'], function() {
-            Route::group(['prefix' => 'court-types'], function() {
-                Route::get('/', [CourtTypeController::class, "index"]);
-                Route::post('/', [CourtTypeController::class, "store"]);
-                Route::put('/{courtType:id}', [CourtTypeController::class, "update"]);
-                Route::delete('/{courtType:id}', [CourtTypeController::class, "delete"]);
-            });
-        });
-
-        // Route::group(['prefix' => 'venueOwner'], function() {
-        //     Route::get('/getEmployees/{ownerId}', [AccountController::class, "getEmployees"]);
-        // });
-
-    });
-
-    Route::group(['prefix' => 'venueOwner'], function() {
-        Route::get('/employees/{ownerId}', [AccountController::class, "getEmployees"]);
     });
 
     Route::post('/register', [AccountController::class, "register"]);

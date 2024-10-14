@@ -12,9 +12,11 @@ use App\Mail\RegisterNewVenueMail;
 use App\Models\Address;
 use App\Models\Court;
 use App\Models\CourtType;
+use App\Models\Facility;
 use App\Models\Venue;
 use App\Models\VenueFacilities;
 use App\Models\VenueImage;
+use App\Models\VenueOpenDays;
 use App\Services\V1\VenueQuery;
 use Illuminate\Support\Facades\Mail;
 
@@ -65,13 +67,6 @@ class VenueController extends Controller
         return new VenueCollection($venues);
     }
 
-    public function fetchImage(Venue $venue)
-    {
-        $venueImages = VenueImage::where('venue_id', $venue->id)->get();
-        $venueImages = $venueImages->pluck('url');
-        return response()->json(["data"=>$venueImages]);
-    }
-
     public function show(Venue $venue, Request $request) {
         $v = $venue;
         if ($request->query('courts') != null && $request->query('courts') == 'included') {
@@ -89,7 +84,7 @@ class VenueController extends Controller
 
         if (auth('sanctum')->check()) {
             $userAuth = auth('sanctum')->user();
-            if ($userAuth->role_id != 2 && $userAuth->role_id != 3) { //pemilik lapangan / admin
+            if ($userAuth->role_id != 2 && $userAuth->role_id != 4) { //pemilik lapangan / admin
                 return response()->json([
                     "status" => 0,
                     "message" => "Gagal memasukkan data. Anda bukan admin / pemilik lapangan"
@@ -119,6 +114,51 @@ class VenueController extends Controller
             ]);
         }
 
+        if (isset($request->deleteOpenDays) && $request->deleteOpenDays != null) {
+            foreach ($request->deleteOpenDaysId as $id) {
+                VenueOpenDays::where('id', $id)->update(['status' => 0]);
+            }
+        }
+
+        $messages = [];
+
+        if (isset($request->openDays) && $request->openDays != null) {
+            foreach ($request->openDays as $openDay) {
+                $countVod = VenueOpenDays::where("day_of_week", $openDay['dayOfWeek'])->where("status", 1)->where('venue_id', $venue->id)->count();
+                if ($countVod <= 0) {
+                    VenueOpenDays::create([
+                        "day_of_week" => $openDay["dayOfWeek"],
+                        "time_open" => $openDay["timeOpen"],
+                        "time_close" => $openDay["timeClose"],
+                        "venue_id" => $venue->id
+                    ]);
+                } else {
+                    array_push($messages, "Day of week " . $openDay["dayOfWeek"] . " sudah ada. Jadi, tidak di-insert");
+                }
+            }
+        }
+
+        if (isset($request->deleteFacilitiesId) && $request->deleteFacilitiesId != null) {
+            foreach ($request->deleteFacilitiesId as $facilityId) {
+                VenueFacilities::where('id', $facilityId)->update(['status' => 0]);
+            }
+        }
+
+        if (isset($request->facilitiesId) && $request->facilitiesId != null) {
+            foreach ($request->facilitiesId as $facilityId) {
+                $countf = VenueFacilities::where("id", $facilityId)->where("status", 1)->where("venue_id", $venue->id)->count();
+                if ($countf <= 0) {
+                    VenueFacilities::create([
+                        'venue_id' => $venue->id,
+                        'facility_id' => $facilityId
+                    ]);
+                } else {
+                    $facility = Facility::where("id", $facilityId)->first();
+                    array_push($messages, "Fasilitas $facility->name sudah ada. Jadi, tidak di-insert");
+                }
+            }
+        }
+
         if (isset($request->deleteImages) && $request->deleteImages != null) {
             foreach($request->deleteImages as $image) {
                 VenueImage::where('url', 'like', '%' . $image)->update(['status' => 0]);
@@ -127,6 +167,13 @@ class VenueController extends Controller
 
         if (isset($request->images) && $request->images != null) {
             $this->uploadImages($request, $venue->id);
+        }
+
+        if (count($messages) > 0) {
+            return response()->json([
+                "status" => "warning",
+                "messages" => $messages
+            ]);
         }
     }
 
@@ -139,7 +186,7 @@ class VenueController extends Controller
         //get currently logged in user;
         if (auth('sanctum')->check()) {
             $userAuth = auth('sanctum')->user();
-            if ($userAuth->role_id != 2 && $userAuth->role_id != 3) { //pemilik lapangan / admin
+            if ($userAuth->role_id != 2 && $userAuth->role_id != 4) { //pemilik lapangan / admin
                 return response()->json([
                     "status" => 0,
                     "message" => "Gagal memasukkan data. Anda bukan admin / pemilik lapangan"
@@ -193,6 +240,15 @@ class VenueController extends Controller
             VenueFacilities::create([
                 'venue_id' => $venue->id,
                 'facility_id' => $facilityId
+            ]);
+        }
+
+        foreach ($request->openDays as $openDay) {
+            VenueOpenDays::create([
+                "day_of_week" => $openDay["dayOfWeek"],
+                "time_open" => $openDay["timeOpen"],
+                "time_close" => $openDay["timeClose"],
+                "venue_id" => $venue->id
             ]);
         }
 

@@ -17,6 +17,7 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('venue_id');
             $table->unsignedBigInteger('facility_id');
+            $table->integer('status')->default(1);
             $table->timestamps();
         });
     }

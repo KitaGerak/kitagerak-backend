@@ -78,7 +78,7 @@ class CourtController extends Controller
     public function store(StoreCourtRequest $request) {
         if (auth('sanctum')->check()) {
             $userAuth = auth('sanctum')->user();
-            if ($userAuth->role_id != 2 && $userAuth->role_id != 3) { //pemilik lapangan / admin
+            if ($userAuth->role_id != 2 && $userAuth->role_id != 4) { //pemilik lapangan / admin
                 return response()->json([
                     "status" => 0,
                     "message" => "Gagal memasukkan data. Anda bukan admin / pemilik lapangan"
@@ -107,7 +107,7 @@ class CourtController extends Controller
     public function update(UpdateCourtRequest $request, Court $court) {
         if (auth('sanctum')->check()) {
             $userAuth = auth('sanctum')->user();
-            if ($userAuth->role_id != 2 && $userAuth->role_id != 3) { //pemilik lapangan / admin
+            if ($userAuth->role_id != 2 && $userAuth->role_id != 4) { //pemilik lapangan / admin
                 return response()->json([
                     "status" => 0,
                     "message" => "Gagal memasukkan data. Anda bukan admin / pemilik lapangan"

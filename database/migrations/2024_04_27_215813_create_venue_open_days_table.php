@@ -17,6 +17,9 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('venue_id');
             $table->integer('day_of_week');
+            $table->time('time_open');
+            $table->time('time_close');
+            $table->integer('status')->default(1);
             $table->foreign('venue_id')->references('id')->on('venues');
             $table->timestamps();
         });
