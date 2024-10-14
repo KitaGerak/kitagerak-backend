@@ -14,7 +14,6 @@ use App\Models\Schedule;
 use App\Models\Transaction;
 use App\Models\TransactionStatus;
 use App\Models\User;
-use App\Models\UserBalance;
 use App\Services\V1\TransactionQuery;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -23,49 +22,78 @@ class TransactionController extends Controller
 {
     public function index(Request $request) {
         if (auth('sanctum')->check()){
-            $userIdAuth = auth('sanctum')->user()->id;
-            $userId = $request->query('user_id')["eq"];
+            $userAuth = auth('sanctum')->user();
+            $userId = $request->query('userId')["eq"];
+            $ownerId = $request->query('ownerId')["eq"];
 
+            if ($userAuth->role_id != 3) {
+                if ($userAuth->role_id == 1) {
+                    if ($userId == null) {
+                        return response()->json([
+                            "status" => 0,
+                            "message" => "Must specify user id"
+                        ]);
+                    }
+        
+                    if ($userId != $userAuth->id) {
+                        return response()->json([
+                            "status" => 0,
+                            "message" => "Dilarang mengambil data user lain"
+                        ]);
+                    }
+                } else if ($userAuth->role_id == 2) { //pemilik lapangan
+                    if ($ownerId == null) {
+                        return response()->json([
+                            "status" => 0,
+                            "message" => "Must specify owner id"
+                        ]);
+                    }
+        
+                    if ($ownerId != $userAuth->id) {
+                        return response()->json([
+                            "status" => 0,
+                            "message" => "Dilarang mengambil data owner lain"
+                        ]);
+                    }
+                }
+            }
+            
             $filter = new TransactionQuery();
             $queryItems = $filter->transform($request); //[['column', 'operator', 'value']]
 
-            $res = Transaction::select('*')->with('schedules')->with('court')->with('transactionStatus');
+            $res = Transaction::select('transactions.*')->with('schedules')->with('court')->with('transactionStatus');
 
             if (count($queryItems) > 0) {
-                $res->leftJoin('transaction_statuses', 'transaction_statuses.id', '=', 'transactions.transaction_status_id')->where($queryItems);
+                $res = $res->leftJoin('users as u1', 'u1.id', 'transactions.user_id')->leftJoin('transaction_statuses as ts', 'ts.id', '=', 'transactions.transaction_status_id')->leftJoin('courts as c', 'c.id', 'transactions.court_id')->leftJoin('venues as v', 'v.id', 'c.venue_id')->leftJoin('users as u2', 'u2.id', 'v.owner_id')->where($queryItems);
             }
-            
-            if (auth('sanctum')->user()->role_id == 1) {
-                return new TransactionCollection($res->paginate(10)->withQueryString());
-            } if ($userId && $userIdAuth == $userId) {
-                $res->where('transactions.user_id', $userId);
-                return new TransactionCollection($res->paginate(10)->withQueryString());
-            }
+            return new TransactionCollection($res->paginate(20)->withQueryString());
         }
 
         return response()->json([
             'status' => false,
-            'message' => "User ID Required",
-            'data' => null,
+            'message' => "Unauthenticated",
         ], 422);
     }
 
     public function show(Transaction $transaction) {
         return $transaction;
         if (auth('sanctum')->check()){
-            $userIdAuth = auth('sanctum')->user()->id;
+            $userAuth = auth('sanctum')->user();
 
-            if (auth('sanctum')->user()->role_id == 1) {
+            if ($userAuth->role_id == 3 || $userAuth->id == $transaction->user->id || $userAuth->id == $transaction->court->venue->owner->id) {
                 return new TransactionResource($transaction->loadMissing('schedules')->loadMissing('court')->loadMissing('transactionStatus'));
-            } else if ($transaction->user_id && $userIdAuth == $transaction->user_id) {
-                return new TransactionResource($transaction->loadMissing('schedules')->loadMissing('court')->loadMissing('transactionStatus'));
-            }
+            } 
+
+            return response()->json([
+                'status' => false,
+                'message' => "Dilarang melihat data user lain",
+            ], 422);
+
         }
         
         return response()->json([
             'status' => false,
             'message' => "Unauthenticated",
-            'data' => null,
         ], 422);
     }
 
@@ -236,7 +264,11 @@ class TransactionController extends Controller
                 ], 500);
             }
 
-            DB::statement("UPDATE `transactions` SET checkout_link = '" . $xenditResponse->collect()['invoice_url'] . "', invoice_id = '" . $xenditResponse->collect()['id'] . "', amount_rp = (SELECT SUM($query) AS amount_rp FROM `schedules` WHERE transaction_id = $insertedTransaction->id) + (SELECT amount_rp FROM `fees` WHERE name = 'app_admin'), schedule_id = " . $request->scheduleIds[0] . " WHERE id = $insertedTransaction->id");
+            $schedule = Schedule::where('id', $request->scheduleIds[0]);
+
+            // DB::statement("UPDATE `transactions` SET checkout_link = '" . $xenditResponse->collect()['invoice_url'] . "', invoice_id = '" . $xenditResponse->collect()['id'] . "', amount_rp = (SELECT SUM($query) AS amount_rp FROM `schedules` WHERE transaction_id = $insertedTransaction->id) + (SELECT amount_rp FROM `fees` WHERE name = 'app_admin'), schedule_id = " . $request->scheduleIds[0] . " WHERE id = $insertedTransaction->id");
+
+            DB::statement("UPDATE `transactions` SET checkout_link = '" . $xenditResponse->collect()['invoice_url'] . "', invoice_id = '" . $xenditResponse->collect()['id'] . "', amount_rp = (SELECT SUM($query) AS amount_rp FROM `schedules` WHERE transaction_id = $insertedTransaction->id) + (SELECT amount_rp FROM `fees` WHERE name = 'app_admin'), court_id = " . $schedule->court->id . " WHERE id = $insertedTransaction->id");
 
             return new TransactionResource($insertedTransaction);
         } else {
@@ -360,15 +392,9 @@ class TransactionController extends Controller
             }
 
             if ($transaction->transaction_status_id == 1) { // konsumen sudah bayar, jadi harus ada saldo yang dikembalikan
-                $afftectedRow = DB::update("UPDATE `user_balances` SET balance = balance + ((SELECT amount_rp * $refundPercentage FROM `transactions` WHERE id = $transaction->id) - (SELECT amount_rp FROM `fees` WHERE name = 'app_admin')) WHERE user_id = $transaction->user_id");
-                
-                if ($afftectedRow == 0) {
-                    $fee = Fee::where('name', 'app_admin')->first()->amount_rp;
-                    UserBalance::create([
-                        'user_id' => $transaction->user_id,
-                        'balance' => $transaction->amount_rp - $fee,
-                    ]);
-                }
+
+                $afftectedRow = DB::update("UPDATE `users` SET balance = balance + ((SELECT amount_rp * $refundPercentage FROM `transactions` WHERE id = $transaction->id) - (SELECT amount_rp FROM `fees` WHERE name = 'app_admin')) WHERE id = $transaction->user_id");
+                $fee = Fee::where('name', 'app_admin')->first()->amount_rp;
             }
 
             BalanceWithdrawalDetail::create([

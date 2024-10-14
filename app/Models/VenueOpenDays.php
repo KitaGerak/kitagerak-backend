@@ -9,5 +9,7 @@ class VenueOpenDays extends Model
 {
     use HasFactory;
 
-    protected $table = "venue_open_days";
+    protected $guarded = [
+        'id'
+    ];
 }

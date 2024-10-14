@@ -4,7 +4,7 @@
 
 // use Illuminate\Foundation\Http\FormRequest;
 
-// class StoreTransactionRequest extends FormRequest
+// class BulkStoreVenueRequest extends FormRequest
 // {
 //     /**
 //      * Determine if the user is authorized to make this request.
@@ -15,7 +15,7 @@
 //     {
 //         $user = $this->user();
 
-//         return $user !== null && $user->tokenCan('make_transaction');
+//         return $user != null && $user->tokenCan('create');
 //     }
 
 //     /**
@@ -26,17 +26,23 @@
 //     public function rules()
 //     {
 //         return [
-//             'userId' => ['required'],
-//             'scheduleId' => ['required'],
+//             '*.name' => ['required'],
+//             '*.address' => ['required'],
+//             '*.ownerId' => ['required', 'exists:users,id'],
+//             '*.imageUrl' => ['required'],
 //         ];
 //     }
 
 //     protected function prepareForValidation()
 //     {
-//         $this->merge([
-//             'user_id' => $this->userId,
-//             'schedule_id' => $this->scheduleId,
-//         ]);
-//     }
+//         $data = [];
+//         foreach($this->toArray() as $obj) {
+//             $obj['owner_id'] = $obj['ownerId'] ?? null;
+//             $obj['image_url'] = $obj['imageUrl'] ?? null;
 
+//             $data[] = $obj;
+//         }
+
+//         $this->merge($data);
+//     }
 // }

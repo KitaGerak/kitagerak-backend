@@ -13,10 +13,12 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::table('venues', function (Blueprint $table) {
-            $table->time('open_hour');
-            $table->time('close_hour');
-            $table->integer('interval');
+        Schema::create('court_close_days', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('court_id');
+            $table->dateTime('close_at');
+            $table->foreign('court_id')->references('id')->on('courts');
+            $table->timestamps();
         });
     }
 
@@ -27,10 +29,6 @@ return new class extends Migration
      */
     public function down()
     {
-        Schema::table('venues', function (Blueprint $table) {
-            $table->dropColumn('open_hour');
-            $table->dropColumn('close_hour');
-            $table->dropColumn('interval');
-        });
+        Schema::dropIfExists('court_close_days');
     }
 };

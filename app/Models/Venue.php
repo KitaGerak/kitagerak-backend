@@ -19,19 +19,24 @@ class Venue extends Model
     }
 
     public function venueImages() {
-        return $this->hasMany(VenueImage::class, 'venue_id');
+        return $this->hasMany(VenueImage::class)->where('venue_images.status', '<>', 0);
     }
 
     public function address() {
         return $this->belongsTo(Address::class);
     }
 
-    public function venueOwner(): BelongsToMany
-    {
-        return $this->belongsToMany(User::class, 'venue_owner_and_venue');
-    }
+    // public function venueOwner(): BelongsToMany
+    // {
+    //     return $this->belongsToMany(User::class, 'venue_owner_and_venue');
+    // }
 
     public function owner() {
         return $this->belongsTo(User::class, 'owner_id');
+    }
+
+    public function facilities() {
+        // return $this->belongsToMany
+        
     }
 }

@@ -19,6 +19,7 @@ return new class extends Migration
             $table->string('verification_code');
             $table->boolean('is_valid')->default(0);
             $table->dateTime('valid_until');
+            $table->string('verification_for');
             $table->foreign('user_id')->references('id')->on('users');
             $table->timestamps();
         });

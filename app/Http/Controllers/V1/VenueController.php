@@ -4,122 +4,65 @@ namespace App\Http\Controllers\V1;
 
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\V1\BulkStoreVenueRequest;
 use App\Http\Requests\V1\StoreVenueRequest;
 use App\Http\Requests\V1\UpdateVenueRequest;
+use App\Http\Resources\V1\VenueCollection;
 use App\Http\Resources\V1\VenueResource;
 use App\Mail\RegisterNewVenueMail;
 use App\Models\Address;
 use App\Models\Court;
 use App\Models\CourtType;
-use App\Models\User;
 use App\Models\Venue;
 use App\Models\VenueFacilities;
 use App\Models\VenueImage;
-use App\Models\VenueOpenDays;
 use App\Services\V1\VenueQuery;
-use Carbon\Carbon;
-use Exception;
-use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Storage;
 
 class VenueController extends Controller
 {
 
-    private $courtTypeObj;
-
-    public function __construct(CourtType $courtType) {
-        $this->courtTypeObj = $courtType;
-    }
-
     public function index(Request $request) {
-        $includeCourts = $request->query('includeCourts');
-        $allowAllStatus = $request->query('allowAllStatus');
-        $ownerId = $request->owner_id;
-        
         $filter = new VenueQuery();
-        $queryItems = $filter->transform($request); //[['column', 'operator', 'value']]
+        $queryItems = $filter->transform($request);
 
-        $res = new Venue();
-        if($allowAllStatus!=true || !isset($allowAllStatus))
-            $res = $res->where('venues.status', '<>', 0);
-            
-        if ($includeCourts) {
-            $this->courtTypeObj->withCourts = true;
-            $res->with('courts');
+        $with = [];
+
+        if ($request->query('courts') != null && $request->query('courts') == "included") {
+            array_push($with, 'courts');
         }
 
-        if ($ownerId)
-            $res = $res->where('owner_id', $ownerId);
+        if ($request->query('owner') != null && $request->query('owner') == "included") {
+            array_push($with, 'owner');
+        }
 
-        $limit = $request->query('limit');
+        $venues = Venue::select('venues.*')->with($with)->where('venues.status', '<>', 0)->distinct();
 
-        if ($limit == "") {
-            $sortBy = $request->query('sort_by');
-            $orderBy = $request->query('order_by');
-
-            $contains = $request->query('contains');
-
-            if ($sortBy != "" || count($queryItems) > 0) {
-                $res->selectRaw('venues.*, SUM(courts.number_of_people) AS number_of_people, AVG(courts.sum_rating) AS sum_rating, AVG(courts.price) AS price')->groupBy('id')->leftJoin('courts', 'courts.venue_id', '=', 'venues.id');
-            } else {
-                $res->select('venues.id', 'venues.name', 'venues.address_id', 'venues.description', 'venues.image_url', 'venues.owner_id', 'venues.status');
-            }
-
-            if ($sortBy != "") {
-                $validSortBy = ['rating', 'price', 'numberOfReviews'];
-                $validOrderBy = ['asc', 'desc'];
-
-                foreach (explode(',', $sortBy) as $i=>$sb) {
-                    $explodeOrderBy = explode(',', $orderBy);
-                    // echo !isset($explodeOrderBy[$i]) ? "desc" : $explodeOrderBy[$i] . "->" . $i . " ... ";
-                    if (in_array($sb, $validSortBy) && in_array(!isset($explodeOrderBy[$i]) ? "desc" : $explodeOrderBy[$i], $validOrderBy)) {
-                        $sort = $sb;
-                        if ($sb == 'numberOfReviews') {
-                            $sort = 'number_of_people';
-                        } else if ($sb == 'rating') {
-                            $sort = 'sum_rating';
-                        }
-                        $res->orderBy($sort, !isset($explodeOrderBy[$i]) ? "desc" : $explodeOrderBy[$i]);
-                    }
-                }
-            }
-
-            if ($contains != "") {
-                $res->where('venues.name', 'like', '%' . $contains . '%');
-            }
-
-            if (count($queryItems) == 0) {
-                return VenueResource::collection($res->distinct()->paginate(10)->withQueryString());
-            } else {
-                $res->leftJoin('court_types', 'courts.court_type_id', '=', 'court_types.id')->where($queryItems);
-
-                return VenueResource::collection($res->paginate(10)->withQueryString());
+        if (isset($request->orderBy)) {
+            $obs = explode(",", $request->orderBy);
+            foreach ($obs as $orderBy) {
+                $ob = explode("|", $orderBy);
+                $venues = $venues->orderBy($ob[0], $ob[1]);
             }
         } else {
-            $res->select('venues.id', 'venues.name', 'venues.address_id', 'venues.description', 'venues.image_url', 'venues.owner_id', 'venues.status');
-            return VenueResource::collection($res->distinct()->paginate($limit)->withQueryString());
+            $venues = $venues->orderBy('venues.id', 'DESC');
         }
 
-        // $ownerId = $request->query('ownerId');
-        // $courtType = $request->query('courtType');
+        if (count($queryItems) == 0) {
+            if ($request->query('paginate') != null && $request->query('paginate') == 'true') {
+                $venues = $venues->paginate(30)->withQueryString();
+            } else {
+                $venues = $venues->get();
+            }
+        } else {
+            $venues = $venues->leftJoin('courts', 'courts.venue_id', '=', 'venues.id')->leftJoin('court_types', 'court_types.id', '=', 'courts.court_type_id')->leftJoin('addresses', 'addresses.id', '=', 'venues.address_id');
+            if ($request->query('paginate') != null && $request->query('paginate') == 'true') {
+                $venues = $venues->where($queryItems)->paginate(30)->withQueryString();
+            } else {
+                $venues = $venues->where($queryItems)->get();
+            }
+        }
 
-
-        // if ($courtType) {
-        //     // $courtTypeCount = CourtType::where('type', $courtType)->where('status', '1')->get()->count();
-        //     // if ($courtTypeCount == 0) {
-        //     //     return response()->json([
-        //     //         'data' => []
-        //     //     ]);
-        //     // }
-        //     $this->courtTypeObj->withCourts = true;
-        //     return new VenueCollection($this->courtTypeObj->where('type', $courtType)->with('venues')->first()['venues']);
-        // }
-
-        // if ($ownerId) {
-        //     $res->where('owner_id', $ownerId);
-        // }
+        return new VenueCollection($venues);
     }
 
     public function fetchImage(Venue $venue)
@@ -130,44 +73,89 @@ class VenueController extends Controller
     }
 
     public function show(Venue $venue, Request $request) {
-        try {
-            $includeCourts = $request->query('includeCourts');
-    
-            if ($includeCourts) {
-                return new VenueResource($venue->loadMissing('courts'));
-            }
-
-            return new VenueResource($venue);
-        } catch (Exception $e)
-        {
-            return response()->json($e->getMessage());
+        $v = $venue;
+        if ($request->query('courts') != null && $request->query('courts') == 'included') {
+            $v = $v->loadMissing('courts');
         }
+
+        if ($request->query('owner') != null && $request->query('owner') == 'included') {
+            $v = $v->loadMissing('owner');
+        }
+    
+        return new VenueResource($v);
     }
 
     public function update(UpdateVenueRequest $request, Venue $venue) {
-        if (isset($request['address'])) {
-            $address = $venue->address;
-            foreach($request['address'] as $key=>$addr) {
-                if ($key == "postalCode") {
-                    $address->postal_code = $addr;
-                } else {
-                    $address->$key = $addr;
-                }
-            }
 
-            $address->save();
+        if (auth('sanctum')->check()) {
+            $userAuth = auth('sanctum')->user();
+            if ($userAuth->role_id != 2 && $userAuth->role_id != 3) { //pemilik lapangan / admin
+                return response()->json([
+                    "status" => 0,
+                    "message" => "Gagal memasukkan data. Anda bukan admin / pemilik lapangan"
+                ]);
+            } else if ($venue->owner->id != $userAuth->id) {
+                return response()->json([
+                    "status" => 0,
+                    "message" => "Gagal memasukkan data. Anda bukan pemilik lapangan"
+                ]);
+            }
+        } else {
+            return response()->json([
+                "status" => 0,
+                "message" => "Unauthenticated"
+            ]);
         }
+
         $venue->update($request->all());
+
+        if (isset($request->address) && $request->address != null) {
+            $address = $request->address;
+            Address::where('id', $address['id'])->update([
+                'street' => $address['street'],
+                'postal_code' => $address['postalCode'],
+                'longitude' => $address['longitude'],
+                'latitude' => $address['latitude']
+            ]);
+        }
+
+        if (isset($request->deleteImages) && $request->deleteImages != null) {
+            foreach($request->deleteImages as $image) {
+                VenueImage::where('url', 'like', '%' . $image)->update(['status' => 0]);
+            }
+        }
+
+        if (isset($request->images) && $request->images != null) {
+            $this->uploadImages($request, $venue->id);
+        }
     }
 
     //StoreVenueRequest
-    public function store(Request $request) {
-        try {
+    public function store(StoreVenueRequest $request) {
+        $userAuth = null;
 
-            $user = User::find($request->owner_id);
+        return $this->uploadImages($request, 1);
 
-            Mail::to($user->email)->send(new RegisterNewVenueMail());
+        //get currently logged in user;
+        if (auth('sanctum')->check()) {
+            $userAuth = auth('sanctum')->user();
+            if ($userAuth->role_id != 2 && $userAuth->role_id != 3) { //pemilik lapangan / admin
+                return response()->json([
+                    "status" => 0,
+                    "message" => "Gagal memasukkan data. Anda bukan admin / pemilik lapangan"
+                ]);
+            }
+        } else {
+            return response()->json([
+                "status" => 0,
+                "message" => "Unauthenticated"
+            ]);
+        }
 
+        // TODO
+        // Mail::to($user->email)->send(new RegisterNewVenueMail());
+
+        if (isset($request['address'])) {
             $address = Address::create([
                 'street' => $request['address']['street'],
                 'city' => $request['address']['city'],
@@ -175,85 +163,46 @@ class VenueController extends Controller
                 'postal_code' => $request['address']['postalCode'],
                 'longitude' => $request['address']['longitude'],
                 'latitude' => $request['address']['latitude'],
-            ]);
-            $venue = new VenueResource(Venue::create([
-                'name' => $request['name'],
-                'owner_id' => $request['owner_id'],
-                'image_url' => $request['image_url'],
-                'address_id' => $address['id'],
-                'status' => 0,
-                'open_hour' => Carbon::createFromFormat('H:i:s', '07:00:00'),
-                'close_hour' => Carbon::createFromFormat('H:i:s', '21:00:00'),
-                'interval' => 2,
-            ]));
-
-            try {
-                foreach (json_decode($request->facilities) as $index => $facility) {
-                    if(boolval($facility))
-                    {
-                        $venueFacility = new VenueFacilities();
-                        $venueFacility->venue_id = $venue->id;
-                        $venueFacility->facility_id = $index + 1;
-                        $venueFacility->save();
-                    }
-                }
-
-                foreach (json_decode($request->open_days) as $index => $open_day) {
-                    if(boolval($open_day))
-                    {
-                        $venueOpenDay = new VenueOpenDays();
-                        $venueOpenDay->venue_id = $venue->id;
-                        $venueOpenDay->day_of_week = $index + 1;
-                        $venueOpenDay->save();
-                    }
-                }
-                    
-            } catch (\Exception $e)
-            {
-                return response()->json($e->getMessage());
-            }
-
-            if($request->hasFile('venueImages'))
-            {
-                $venueImages = $request->venueImages;
-                
-                foreach ($venueImages as $file) {
-                    // if($file == null)
-                    //     return response()->json($files);
-
-                    // $filename = $file->getClientOriginalName();
-                    $extension = $file->getClientOriginalExtension();
-    
-                    // $filename = $file->store('venue_images');
-                    $filename = time() . '.' . $file->getClientOriginalExtension();
-                    $path = Storage::disk('public')->put('venue_images', $file);
-    
-                    $newVenueImage = new VenueImage();
-                    $newVenueImage->venue_id = $venue['id'];
-                    $newVenueImage->url = $path;
-                    $newVenueImage->status = "Active";
-                    $newVenueImage->save();
-                }
-            }
-
-            return $venue;
-    
-        } catch (\Exception $e)
-        {
-            return response()->json('Error : ' . $e->getMessage());
+            ]);    
         }
-    }
 
-    public function bulkStore(BulkStoreVenueRequest $request) {
-        $bulk = collect($request->all())->map(function($arr, $key) {
-            return Arr::except($arr, ['ownerId', 'imageUrl']);
-        });
+        $addressId = null;
 
-        Venue::insert($bulk->toArray());
+        if (isset($request['addressId'])) {
+            $addressId = $request['addressId'];
+        } else {
+            $addressId = $address->id;
+        }
+
+        if ($addressId == null) {
+            return response()->json([
+                "status" => 0,
+                "message" => "Invalid Address"
+            ]);
+        }
+        
+        $venue = new VenueResource(Venue::create([
+            'name' => $request['name'],
+            'description' => $request['description'],
+            'owner_id' => $userAuth->id,
+            'address_id' => $addressId,
+            'status' => -1,
+        ]));
+
+        foreach ($request->facilitiesId as $facilityId) {
+            VenueFacilities::create([
+                'venue_id' => $venue->id,
+                'facility_id' => $facilityId
+            ]);
+        }
+
+        $this->uploadImages($request, $venue->id);
+
+        return $venue;
     }
 
     public function destroy(Venue $venue) {
-        $venue->status = "0";
+        $venue->status = 0;
         $venue->save();
     }
 
@@ -274,31 +223,58 @@ class VenueController extends Controller
         $res = [
             'floorType' => $floorTypesArr,
             'courtType' => $courtTypesArr,
-            'courtSize' => [
-                [
-                    'display' => '<= 10m',
-                    'query' => 'courtSize[lte]=10'
-                ],
-
-                [
-                    'display' => '10-15m',
-                    'query' => 'courtSize[gte]=10&courtSize[lte]=15'
-                ],
-
-                [
-                    'display' => '16-20m',
-                    'query' => 'courtSize[gte]=16&courtSize[lte]=20'
-                ],
-
-                [
-                    'display' => '21-25m',
-                    'query' => 'courtSize[gte]=21&courtSize[lte]=25'
-                ],
-
-            ]
         ];
 
         return response()->json($res);
+    }
+
+    private function uploadImages(Request $request, $venueId) {
+        if ($request->has('images')) {
+            $images = $request->images;
+
+            $allowedImageExtensions = ['jpg', 'jpeg', 'png'];
+            $allowedVideoExtensions = ['mp4', 'mov'];
+
+            $invalidFile = [];
+
+            foreach($images as $image) {
+                $extension = $image->getClientOriginalExtension();
+
+                if (!in_array(strtolower($extension), $allowedImageExtensions) && !in_array(strtolower($extension), $allowedVideoExtensions)) {
+                    array_push($invalidFile, $image->getClientOriginalName());
+                }
+            }
+
+            if(count($invalidFile) == 0) {
+                $successFile = [];
+                foreach($images as $image) {
+                    $fileName = $image->store("private/images/venues/$venueId");
+                    VenueImage::create([
+                        'venue_id' => $venueId,
+                        'url' => $fileName,
+                        'status' => 1,
+                    ]);
+                    array_push($successFile, $fileName);
+                }
+                return response()->json([
+                    'status' => true,
+                    'message' => 'Success',
+                    'successFile' => $successFile,
+                ]);
+            } else {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Invalid File Type',
+                    'invalidFileName' => $invalidFile,
+                ], 500);
+            }
+        } else {
+            return response()->json([
+                'status' => false,
+                'message' => 'No File(s)',
+                'invalidFileName' => null,
+            ], 500);
+        }
     }
 
     public function searchSuggestion() {

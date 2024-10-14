@@ -2,10 +2,7 @@
 
 namespace App\Http\Resources\V1;
 
-use App\Models\CourtImage;
-use App\Models\CourtType;
 use Illuminate\Http\Resources\Json\JsonResource;
-use Illuminate\Support\Facades\DB;
 
 class CourtResource extends JsonResource
 {
@@ -17,26 +14,25 @@ class CourtResource extends JsonResource
      */
     public function toArray($request)
     {
-        // return parent::toArray($request);
-
-        // dd(new CourtPriceResource($this->prices));
         return [
             'id' => $this->id,
             'name' => $this->name,
-            'venueId' => $this->venue_id,
+            'venue' => new VenueResource($this->whenLoaded('venue')),
             'floorType' => $this->floor_type,
-            'courtType' => new CourtTypeResource($this->courtType),
+            'courtType' => new CourtTypeResource($this->whenLoaded('courtType')),
             'alternateType' => $this->alternate_type,
             'size' => $this->size,
-            // 'price' => $this->price,
-            'prices' => CourtPriceResource::collection($this->prices),
-            'images' => CourtImageResource::collection($this->images),
+            'prices' => [
+                $this->regular_price,
+                $this->member_price,
+            ],
+            'images' => CourtImageResource::collection($this->whenLoaded('images')),
             'status' => $this->status,
             'rating' => [
                 "totalNumberOfPeople" => $this->number_of_people,
                 "totalRating" => $this->sum_rating,
             ],
-            'ratings' => RatingResource::collection($this->ratings),
+            'ratings' => RatingResource::collection($this->whenLoaded('ratings')),
         ];
     }
 }

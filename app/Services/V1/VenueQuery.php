@@ -6,17 +6,29 @@ use Illuminate\Http\Request;
 
 class VenueQuery {
     protected $safeParms = [
-        'price' => ['eq', 'gte', 'lte'],
-        'courtSize' => ['eq', 'gte', 'lte'],
+        'price' => ['eq', 'gte', 'lte', 'gt', 'lt', 'in'],
+        'courtSize' => ['eq', 'gte', 'lte', 'gt', 'lt'],
         'courtType' => ['eq'],
-        'floorType' => ['eq']
+        'floorType' => ['eq'],
+        'addressId' => ['eq'],
+        'city' => ['eq'],
+        'province' => ['eq'],
+        'postalCode' => ['eq'],
+        'longitude' => ['eq'],
+        'latitude' => ['eq']
     ];
 
     protected $columnMap = [
-        'price' => 'courts.price',
+        'price' => 'courts.regular_price',
         'courtSize' => 'courts.size',
         'courtType' => 'court_types.type',
-        'floorType' => 'courts.floor_type'
+        'floorType' => 'courts.floor_type',
+        'addressId' => 'venues.address_id',
+        'city' => 'addresses.city',
+        'province' => 'addresses.province',
+        'postalCode' => 'addresses.postal_code',
+        'longitude' => 'addresses.longitude',
+        'latitude' => 'addresses.latitude'
     ];
 
     protected $operatorMap = [
@@ -24,7 +36,8 @@ class VenueQuery {
         'lt' => '<',
         'gt' => '>',
         'lte' => '<=',
-        'gte' => '>='
+        'gte' => '>=',
+        'in' => 'in'
     ];
 
     public function transform(Request $request) {

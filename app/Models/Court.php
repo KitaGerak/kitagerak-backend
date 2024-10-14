@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 class Court extends Model
 {
@@ -21,8 +22,8 @@ class Court extends Model
         return $this->hasMany(CourtImage::class)->where('court_images.status', '<>', 0);
     }
 
-    public function prices() {
-        return $this->hasMany(CourtPrice::class);
+    public function owner() {
+        //TODO
     }
 
     public function schedules() {
@@ -39,5 +40,9 @@ class Court extends Model
 
     public function courtType() {
         return $this->belongsTo(CourtType::class);
+    }
+
+    public function courtCloseDays() {
+        return $this->hasMany(CourtCloseDay::class)->where('court_close_days.close_at', '>=', DB::raw(NOW()));
     }
 }

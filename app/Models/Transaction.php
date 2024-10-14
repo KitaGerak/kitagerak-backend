@@ -22,8 +22,12 @@ class Transaction extends Model
     //     return $this->belongsTo(Schedule::class);
     // }
 
-    public function court():HasOneThrough {
-        return $this->hasOneThrough(Court::class, Schedule::class, 'id', 'id', 'schedule_id', 'court_id');
+    // public function court():HasOneThrough {
+    //     return $this->hasOneThrough(Court::class, Schedule::class, 'id', 'id', 'schedule_id', 'court_id');
+    // }
+
+    public function court() {
+        return $this->belongsTo(Court::class);
     }
 
     public function transactionStatus() {

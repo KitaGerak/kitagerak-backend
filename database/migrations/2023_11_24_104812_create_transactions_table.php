@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('external_id')->nullable()->unique();
             $table->string('invoice_id')->nullable();
-            $table->unsignedBigInteger('schedule_id');
+            $table->unsignedBigInteger('court_id');
             $table->string('checkout_link')->nullable();
             $table->unsignedBigInteger('user_id');
             $table->integer('amount_rp')->default(0);

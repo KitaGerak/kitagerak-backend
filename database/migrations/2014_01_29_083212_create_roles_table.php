@@ -20,6 +20,21 @@ return new class extends Migration
             $table->timestamps();
         });
 
+        DB::table('roles')->insert(
+            [
+                'name' => 'customer',
+            ]
+        );
+        DB::table('roles')->insert(
+            [
+                'name' => 'venue_owner',
+            ]
+        );
+        DB::table('roles')->insert(
+            [
+                'name' => 'employee',
+            ]
+        );
     }
 
     /**

@@ -27,23 +27,25 @@ class StoreVenueRequest extends FormRequest
     {
         return [
             'name' => ['required'],
-            'address' => ['required'],
-            'address.street' => ['required'],
-            'address.city' => ['required'],
-            'address.province' => ['required'],
-            'address.postalCode' => ['required'],
-            'address.longitude' => ['required'],
-            'address.latitude' => ['required'],
-            'ownerId' => ['required', 'exists:users,id'],
-            'imageUrl' => ['required'],
+            'description' => ['required'],
+            'addressId' => ['exists:addresses,id'],
+
+            // 'address' => ['required'],
+            // 'address.street' => ['required'],
+            // 'address.city' => ['required'],
+            // 'address.province' => ['required'],
+            // 'address.postalCode' => ['required'],
+            // 'address.longitude' => ['required'],
+            // 'address.latitude' => ['required'],
+
+            'facilitiesId' => ['required'],
         ];
     }
 
     protected function prepareForValidation()
     {
         $this->merge([
-            'owner_id' => $this->ownerId,
-            'image_url' => $this->imageUrl,
+            'address_id' => $this->addressId,
         ]);
     }
 }

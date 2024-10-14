@@ -27,12 +27,14 @@ class StoreCourtRequest extends FormRequest
     {
         return [
             'name' => ['required'],
+            'description' => ['required'],
             'venueId' => ['required', 'exists:venues,id'],
             'floorType' => ['required'],
             'courtTypeId' => ['required', 'exists:court_types,id'],
             'alternateType' => ['string'],
             'size' => ['double'],
-            'prices' => ['required'],
+            'regularPrice' => ['required'],
+            'memberPrice' => ['required'],
         ];
     }
 
@@ -43,6 +45,8 @@ class StoreCourtRequest extends FormRequest
             'floor_type' => $this->floorType,
             'court_type_id' => $this->courtTypeId,
             'alternate_type' => $this->alternateType,
+            'regular_price' => $this->regularPrice,
+            'member_price' => $this->memberPrice,
         ]);
     }
 

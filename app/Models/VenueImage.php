@@ -9,5 +9,7 @@ class VenueImage extends Model
 {
     use HasFactory;
 
-    protected $table = "venue_images";
+    protected $guarded = [
+        'id'
+    ];
 }

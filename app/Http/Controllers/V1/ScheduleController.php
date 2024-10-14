@@ -40,20 +40,6 @@ class ScheduleController extends Controller
         return $res;
     }
 
-    public function store(StoreScheduleRequest $request)
-    {
-        return new ScheduleResource(Schedule::create($request->all()));
-    }
-
-    // public function bulkStore(BulkStoreScheduleRequest $request)
-    // {
-    //     $bulk = collect($request->all())->map(function ($arr, $key) {
-    //         return Arr::except($arr, ['courtId', 'timeStart', 'timeFinish']);
-    //     });
-
-    //     Schedule::insert($bulk->toArray());
-    // }
-
     public function generateSchedule()
     {
         $carbonTodayDate = Carbon::now()->timezone("Asia/Jakarta");
@@ -65,7 +51,6 @@ class ScheduleController extends Controller
             foreach ($venues as $venue) {
                 $timeStart = Carbon::parse($venue->open_hour);
                 $timeEnd = Carbon::parse($venue->close_hour);
-                $allTime = array();
                 for ($currentTime = $timeStart; $currentTime < $timeEnd; $currentTime->addHours($venue->interval)) {
                     foreach ($venue->courts as $court) {
                         $existingSchedule = Schedule::where('court_id', $court->id)->where('date', $currentDate->format('Y-m-d'))->where('time_start', $currentTime->format('H:i:s'))->first();
@@ -104,29 +89,14 @@ class ScheduleController extends Controller
 
     }
 
-    public function update(Schedule $schedule, UpdateScheduleRequest $request)
+    public function update(Request $request)
     {
-        $schedule->update($request->all());
+        
     }
 
     public function destroy(Schedule $schedule)
     {
-        $schedule->status = "0";
+        $schedule->status = 0;
         $schedule->save();
-
-        return response()->json([
-            "message" => ["Berhasil hapus jadwal!"]
-        ]);
-    }
-
-    public function destroyMultiple(Request $request)
-    {
-        if (isset($request->id)) {
-            foreach ($request->id as $id) {
-                Schedule::where('id', $id)->update([
-                    'status' => "0"
-                ]);
-            }
-        }
     }
 }

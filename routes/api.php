@@ -1,8 +1,6 @@
 <?php
 
 use App\Http\Controllers\V1\AccountController;
-use App\Http\Controllers\V1\AuthController;
-use App\Http\Controllers\V1\BalanceController;
 use App\Http\Controllers\V1\CourtController;
 use App\Http\Controllers\V1\CourtTypeController;
 use App\Http\Controllers\V1\InvoiceController;
@@ -47,45 +45,45 @@ Route::group(['prefix' => 'v1'], function() {
     });
 
     Route::group(['prefix' => 'account'], function() {
-        Route::group(['prefix' => 'forgotPassword'], function() {
-            Route::post('/', [AccountController::class, "generateCode"]);
-            Route::post('/verifyCode', [AccountController::class, "verifyCode"]);
-            Route::post('/changePassword', [AccountController::class, "changePassword"]);
-        });
+        Route::post('/generateNewCode', [AccountController::class, "generateCode"]);
+        Route::post('/activate', [AccountController::class, "activateAccount"]);
+        
+        Route::post('/verifyCode', [AccountController::class, "verifyCode"]);
+        Route::post('/changePassword', [AccountController::class, "changePassword"]);
     });
 
     Route::group(['middleware' => 'auth:sanctum'], function() {
 
-        Route::get('/filterOptions', [VenueController::class, "filterOptions"]);
+        Route::get('/venueFilterOptions', [VenueController::class, "filterOptions"]);
         Route::get('/venueSearchSuggestions', [VenueController::class, "searchSuggestion"]);
         Route::get('/transactionFilterOptions', [TransactionController::class, "filterOptions"]);
 
         Route::group(['prefix' => 'venues'], function() {
             Route::post('/', [VenueController::class, "store"]);
-            Route::put('/{venue:id}', [VenueController::class, "update"]);
+            
+            Route::post('/{venue:id}', [VenueController::class, "update"]);
             Route::patch('/{venue:id}', [VenueController::class, "update"]);
-            Route::post('/bulk', [VenueController::class, "bulkStore"]);
+            
             Route::delete('/{venue:id}', [VenueController::class, "destroy"]);
         });
 
         Route::group(['prefix' => 'courts'], function() {
             Route::post('/', [CourtController::class, "store"]);
-            Route::post('/{court:id}/insertPrices', [CourtController::class, "insertPrices"]);
-            Route::post('/{court:id}/updateImages', [CourtController::class, "updateImages"]);
-            Route::put('/{court:id}', [CourtController::class, "update"]);
+            
+            Route::post('/{court:id}', [CourtController::class, "update"]);
             Route::patch('/{court:id}', [CourtController::class, "update"]);
+            
             Route::delete('/{court:id}', [CourtController::class, "destroy"]);
         });
 
         Route::group(['prefix' => 'schedules'], function() {
             Route::get('/', [ScheduleController::class, "index"]);
-            // Route::get('/renter', [ScheduleController::class, "getScheduleForCustomer"]);
-            Route::post('/', [ScheduleController::class, "store"]);
-            // Route::post('/bulkStore', [ScheduleController::class, "bulkStore"]);
+
+            // Route::post('/', [ScheduleController::class, "store"]);
+
             Route::put('/{schedule:id}', [ScheduleController::class, "update"]);
-            Route::patch('/{schedule:id}', [ScheduleController::class, "update"]);
+            
             Route::delete('/{schedule:id}', [ScheduleController::class, "destroy"]);
-            Route::delete('/', [ScheduleController::class, "destroyMultiple"]);
         });
 
         Route::group(['prefix' => 'transactions'], function() {
@@ -101,9 +99,9 @@ Route::group(['prefix' => 'v1'], function() {
             Route::patch('/{transaction:external_id}', [TransactionController::class, "update"]);
         });
 
-        Route::group(['prefix' => 'balances'], function() {
-            Route::get('/{user:id}', [BalanceController::class, "index"]);
-        });
+        // Route::group(['prefix' => 'balances'], function() {
+        //     Route::get('/{user:id}', [BalanceController::class, "index"]);
+        // });
 
         Route::group(['prefix' => 'ratings'], function() {
             Route::get('/', [RatingController::class, "index"]);
@@ -125,15 +123,19 @@ Route::group(['prefix' => 'v1'], function() {
             });
         });
 
-        Route::group(['prefix' => 'venue-owner'], function() {
-            Route::get('/get-employees/{ownerId}', [VenueOwnerController::class, "getEmployees"]);
-        });
+        // Route::group(['prefix' => 'venueOwner'], function() {
+        //     Route::get('/getEmployees/{ownerId}', [AccountController::class, "getEmployees"]);
+        // });
 
     });
 
-    Route::post('/register', [AuthController::class, "register"]);
-    Route::post('/login', [AuthController::class, "login"]);
-    Route::post('/loginWithGoogle', [AuthController::class, "loginWithGoogle"]);
+    Route::group(['prefix' => 'venueOwner'], function() {
+        Route::get('/employees/{ownerId}', [AccountController::class, "getEmployees"]);
+    });
+
+    Route::post('/register', [AccountController::class, "register"]);
+    Route::post('/login', [AccountController::class, "login"]);
+    Route::post('/loginWithGoogle', [AccountController::class, "loginWithGoogle"]);
 });
 
 Route::post('/payments/webhook/xendit', [PaymentWebhookController::class, "xenditWebhook"]);

@@ -13,11 +13,11 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('user_balances', function (Blueprint $table) {
+        Schema::create('venue_open_days', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('user_id');
-            $table->integer('balance');
-            $table->foreign('user_id')->references('id')->on('users');
+            $table->unsignedBigInteger('venue_id');
+            $table->integer('day_of_week');
+            $table->foreign('venue_id')->references('id')->on('venues');
             $table->timestamps();
         });
     }
@@ -29,6 +29,6 @@ return new class extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('user_balances');
+        Schema::dropIfExists('venue_open_days');
     }
 };

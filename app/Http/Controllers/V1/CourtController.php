@@ -10,99 +10,136 @@ use App\Http\Resources\V1\CourtCollection;
 use App\Http\Resources\V1\CourtResource;
 use App\Models\Court;
 use App\Models\CourtImage;
-use App\Models\CourtPrice;
-use App\Models\Venue;
-use PDO;
+use App\Services\V1\CourtQuery;
 
 class CourtController extends Controller
 {
 
     public function index(Request $request) {
-        $court = new Court();
+        $filter = new CourtQuery();
+        $queryItems = $filter->transform($request);
 
-        if($request->query('venueId'))
-            $court = $court->where("venue_id", $request->query('venueId'));
+        $with = ['images', 'courtType', 'ratings'];
 
-        if($request->query('ownerId'))
-        {
-            $venues = Venue::where('owner_id', $request->query('ownerId'))->get();
-            $venueIds = $venues->pluck('id');
+        if ($request->query('venue') != null && $request->query('venue') == "included") {
+            array_push($with, 'venue');
+        }
+        
+        $courts = Court::select('courts.*')->with($with)->where('courts.status', '<>', 0);
 
-            $court = $court->whereIn("venue_id", $venueIds);
+        if ($request->query('ownerId') != null) {
+            $courts = $courts->leftJoin('venues', 'venues.id', '=', 'courts.venue_id')->where('venues.owner_id', $request->query('ownerId'));
         }
 
-        $court = $court->get();
+        if (count($queryItems) == 0) {
+            if ($request->query('paginate') != null && $request->query('paginate') == 'true') {
+                $courts = $courts->orderBy('courts.id', 'DESC')->paginate(30)->withQueryString();
+            } else {
+                $courts = $courts->orderBy('courts.id', 'DESC')->get();
+            }
+        } else {
+            if ($request->query('paginate') != null && $request->query('paginate') == 'true') {
+                $courts = $courts->where($queryItems)->orderBy('courts.id', 'DESC')->paginate(30)->withQueryString();
+            } else {
+                $courts = $courts->where($queryItems)->orderBy('courts.id', 'DESC')->get();
+            }
+        }
+
+        // if($request->query('venueId'))
+        //     $court = $court->where("venue_id", $request->query('venueId'));
+
+        // if($request->query('ownerId'))
+        // {
+        //     $venues = Venue::where('owner_id', $request->query('ownerId'))->get();
+        //     $venueIds = $venues->pluck('id');
+
+        //     $court = $court->whereIn("venue_id", $venueIds);
+        // }
+
+        // $court = $court->get();
         
-        return response()->json(["data" => $court]);
+        // return response()->json(["data" => $court]);
         // return new CourtCollection(Court::paginate(10));
+
+        return new CourtCollection($courts);
     }
 
-    public function show(Court $court) {
-        return new CourtResource($court);
+    public function show(Court $court, Request $request) {
+        $c = $court->loadMissing(['courtType', 'images', 'ratings']);
+
+        if ($request->query('venue') != null && $request->query('venue') == "included") {
+            $c = $c->loadMissing('venue');
+        }
+
+        return new CourtResource($c);
+    }
+
+    // StoreCourtRequest
+    public function store(StoreCourtRequest $request) {
+        if (auth('sanctum')->check()) {
+            $userAuth = auth('sanctum')->user();
+            if ($userAuth->role_id != 2 && $userAuth->role_id != 3) { //pemilik lapangan / admin
+                return response()->json([
+                    "status" => 0,
+                    "message" => "Gagal memasukkan data. Anda bukan admin / pemilik lapangan"
+                ]);
+            }
+        } else {
+            return response()->json([
+                "status" => 0,
+                "message" => "Unauthenticated"
+            ]);
+        }
+
+        if (!isset($request->images)) {
+            return response()->json([
+                "status" => false,
+                "message" => "Setidaknya harus menyertakan 1 gambar"
+            ], 422);
+        }
+
+        $court = Court::create($request->all());
+        $this->uploadImages($request, $court->id);
+        
+        return new CourtResource(Court::where('id', $court->id)->first());
     }
 
     public function update(UpdateCourtRequest $request, Court $court) {
-        $court->update($request->all());
-    }
-
-    public function updateImages(Request $request, Court $court) {
-        $this->uploadImages($request, $court->id);
-        if(isset($request->deleteImages)) {
-            foreach ($request->deleteImages as $delImg) {
-                CourtImage::where('id', $delImg)->update([
-                    'status' => 0
+        if (auth('sanctum')->check()) {
+            $userAuth = auth('sanctum')->user();
+            if ($userAuth->role_id != 2 && $userAuth->role_id != 3) { //pemilik lapangan / admin
+                return response()->json([
+                    "status" => 0,
+                    "message" => "Gagal memasukkan data. Anda bukan admin / pemilik lapangan"
                 ]);
             }
+            // TODO
+            // else if ($venue->owner->id != $userAuth->id) {
+            //     return response()->json([
+            //         "status" => 0,
+            //         "message" => "Gagal memasukkan data. Anda bukan pemilik lapangan"
+            //     ]);
+            // }
+        } else {
+            return response()->json([
+                "status" => 0,
+                "message" => "Unauthenticated"
+            ]);
+        }
+
+        $court->update($request->all());
+        if (isset($request->deleteImages) && $request->deleteImages != null) {
+            foreach($request->deleteImages as $image) {
+                CourtImage::where('url', 'like', '%' . $image)->update(['status' => 0]);
+            }
+        }
+
+        if (isset($request->images) && $request->images != null) {
+            $this->uploadImages($request, $court->id);
         }
     }
 
-    public function storeCourtPrice($request, $courtId)
-    {
-        foreach ($request->prices as $courtPrice) {
-            $newCourtPrice = new CourtPrice();
-            $newCourtPrice->court_id = $courtId;
-            $newCourtPrice->price = $courtPrice['price'];
-            $newCourtPrice->is_member_price = $courtPrice['isMemberPrice'];
-            $newCourtPrice->duration_in_hour = $courtPrice['durationInHour'];
-            $newCourtPrice->save();
-        }
-
-    }
-    // StoreCourtRequest
-    public function store(Request $request) {
-
-        try {
-            $res = Court::create($request->all());
-
-            // self::storeCourtPrice($request, $res->id);
-
-            $this->uploadImages($request, $res->id);
-    
-            return new CourtResource(Court::where('id', $res->id)->first());
-        } catch (\Exception $e)
-        {
-            return response()->json($e->getMessage());
-        }
-    }
-
-    public function insertPrices(Request $request)
-    {
-        try {
-            $newCourtPrice = new CourtPrice();
-            $newCourtPrice->court_id = $request->court_id;
-            $newCourtPrice->price = $request->price;
-            $newCourtPrice->is_member_price = $request->is_member;
-            $newCourtPrice->duration_in_hour = $request->duration_in_hour;
-            $newCourtPrice->save();
-    
-            return new CourtResource(Court::where('id', $request->court_id)->first());
-        } catch (\Exception $e)
-        {
-            return response()->json($e->getMessage());
-        }
-    }
-
-    public function uploadImages(Request $request, $courtId) {
+    private function uploadImages(Request $request, $courtId) {
         if ($request->has('images')) {
             $images = $request->images;
 
@@ -122,7 +159,7 @@ class CourtController extends Controller
             if(count($invalidFile) == 0) {
                 $successFile = [];
                 foreach($images as $image) {
-                    $fileName = $image->store('private/images');
+                    $fileName = $image->store("private/images/courts/$courtId");
                     CourtImage::create([
                         'court_id' => $courtId,
                         'url' => $fileName,
@@ -148,7 +185,7 @@ class CourtController extends Controller
     }
 
     public function destroy (Court $court) {
-        $court->status = "0";
+        $court->status = 0;
         $court->save();
     }
 }

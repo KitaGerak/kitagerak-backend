@@ -17,11 +17,13 @@ class UserResource extends JsonResource
         return [
             "id" => $this->id,
             "name" => $this->name,
-            "email" => $this->email,
+            "email" => $this->whenLoaded('email'),
             "photoUrl" => $this->photo_url != null ? str_replace("private", env("APP_URL"), $this->photo_url) : "https://images.unsplash.com/photo-1529665253569-6d01c0eaf7b6?q=80&w=3185&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-            "phoneNumber" => $this->phone_number,
-            "role" => new RoleResource($this->role),
-            "status" => $this->status
+            "phoneNumber" => $this->whenLoaded('phone_number'),
+            "role" => new RoleResource($this->whenLoaded('role')),
+            "status" => $this->whenLoaded('status'),
+            "balance" => $this->whenLoaded('balance'),
+            "employees" => new UserCollection($this->whenLoaded('employees')),
         ];
     }
 }
