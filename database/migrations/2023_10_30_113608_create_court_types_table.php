@@ -16,7 +16,7 @@ return new class extends Migration
     {
         Schema::create('court_types', function (Blueprint $table) {
             $table->id();
-            $table->string('type');
+            $table->string('type')->unique();
             $table->string('status')->default(1);
             $table->timestamps();
         });

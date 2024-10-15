@@ -1,6 +1,15 @@
 @extends('layouts.main')
 
 @section('content')
+<link rel="stylesheet" href="https://cdn.datatables.net/2.1.8/css/dataTables.dataTables.css" />
+<style>
+    tfoot input {
+        width: 100%;
+        padding: 3px;
+        box-sizing: border-box;
+    }
+</style>
+
     @if (session()->has('success'))
         <div class="alert alert-success">
             {{ session('success') }}
@@ -9,7 +18,7 @@
 
     <div class="container mt-4">
         <h1 class="mb-3">{{ $title }}</h1>
-        <table class="table table-striped">
+        <table id="dataTable" class="table table-striped">
             <thead>
                 <tr>
                     <th scope="col">Nama</th>
@@ -80,6 +89,20 @@
                     </tr>
                 @endforeach
             </tbody>
+            <tfoot>
+                <tr>
+                    <th scope="col">Nama</th>
+                    <th scope="col">Dari Venue</th>
+                    <th scope="col">Deskripsi</th>
+                    <th scope="col">Tipe court</th>
+                    <th scope="col">Harga regular</th>
+                    <th scope="col">Harga member</th>
+                    <th scope="col">Rating</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Keterangan</th>
+                    <th scope="col">Aksi</th>
+                </tr>
+            </tfoot>
         </table>
     </div>
 
@@ -123,10 +146,37 @@
 @endsection
 
 @section('script')
+<script src="https://cdn.datatables.net/2.1.8/js/dataTables.js"></script>
 <script>
-    $(".btn-decline").click(function() {
-        var courtId = $(this).data('id');
-        $(".reasonForm").attr('action', '/courts/' + courtId +  "/decline");
-    });
+    $(document).ready( function () {
+        new DataTable('#dataTable', {
+            scrollX: true,
+            initComplete: function () {
+                this.api()
+                    .columns()
+                    .every(function () {
+                        let column = this;
+                        let title = column.footer().textContent;
+        
+                        // Create input element
+                        let input = document.createElement('input');
+                        input.placeholder = title;
+                        column.footer().replaceChildren(input);
+        
+                        // Event listener for user input
+                        input.addEventListener('keyup', () => {
+                            if (column.search() !== this.value) {
+                                column.search(input.value).draw();
+                            }
+                        });
+                    });
+            }
+        });
+
+        $(".btn-decline").click(function() {
+            var courtId = $(this).data('id');
+            $(".reasonForm").attr('action', '/courts/' + courtId +  "/decline");
+        });
+    } );
 </script>
 @endsection

@@ -27,26 +27,6 @@ Route::get('/test', function() { //simple test to call laravel API
 
 Route::group(['prefix' => 'v1'], function() {
 
-    Route::group(['prefix' => 'venues'], function() {
-        Route::get('/', [VenueController::class, "index"]);
-        Route::get('/{venue:id}', [VenueController::class, "show"]);
-        Route::post('/', [VenueController::class, "store"]);
-
-    });
-
-    Route::group(['prefix' => 'courts'], function() {
-        Route::get('/', [CourtController::class, "index"]);
-        Route::get('/{court:id}', [CourtController::class, "show"]);
-    });
-
-    Route::group(['prefix' => 'account'], function() {
-        Route::post('/generateNewCode', [AccountController::class, "generateCode"]);
-        Route::post('/activate', [AccountController::class, "activateAccount"]);
-        
-        Route::post('/verifyCode', [AccountController::class, "verifyCode"]);
-        Route::post('/changePassword', [AccountController::class, "changePassword"]);
-    });
-
     Route::group(['middleware' => 'auth:sanctum'], function() {
 
         Route::get('/venueFilterOptions', [VenueController::class, "filterOptions"]);
@@ -63,6 +43,8 @@ Route::group(['prefix' => 'v1'], function() {
         });
 
         Route::group(['prefix' => 'courts'], function() {
+            Route::get('/types', [CourtController::class, "getCourtTypes"]);
+
             Route::post('/', [CourtController::class, "store"]);
             
             Route::post('/{court:id}', [CourtController::class, "update"]);
@@ -104,6 +86,25 @@ Route::group(['prefix' => 'v1'], function() {
 
         Route::get('/users/{ownerId}/employees', [AccountController::class, "getEmployees"]);
 
+    });
+
+    Route::group(['prefix' => 'venues'], function() {
+        Route::get('/', [VenueController::class, "index"]);
+        Route::get('/{venue:id}', [VenueController::class, "show"]);
+
+    });
+
+    Route::group(['prefix' => 'courts'], function() {
+        Route::get('/', [CourtController::class, "index"]);
+        Route::get('/{court:id}', [CourtController::class, "show"]);
+    });
+
+    Route::group(['prefix' => 'account'], function() {
+        Route::post('/generateNewCode', [AccountController::class, "generateCode"]);
+        Route::post('/activate', [AccountController::class, "activateAccount"]);
+        
+        Route::post('/verifyCode', [AccountController::class, "verifyCode"]);
+        Route::post('/changePassword', [AccountController::class, "changePassword"]);
     });
 
     Route::post('/register', [AccountController::class, "register"]);

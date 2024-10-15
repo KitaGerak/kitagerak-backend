@@ -4,6 +4,7 @@
 
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\CourtController;
+use App\Http\Controllers\CourtTypeController;
 use App\Http\Controllers\VenueController;
 // use App\Http\Controllers\VerifyEmailController;
 // use Illuminate\Foundation\Auth\EmailVerificationRequest;
@@ -86,6 +87,15 @@ Route::group(['middleware' => 'auth'], function() {
         Route::get('/{court:id}', [CourtController::class, 'show']);
         Route::post('/{court:id}/accept', [CourtController::class, 'acceptCourtRegistration']);
         Route::post('/{court:id}/decline', [CourtController::class, 'declineCourtRegistration']);
+    });
+
+    Route::group(['prefix' => 'courtTypes'], function(){
+        Route::get('/', [CourtTypeController::class, 'index']);
+        Route::post('/', [CourtTypeController::class, 'store']);
+        
+        Route::post('{courtType:id}/update', [CourtTypeController::class, 'update']);
+        Route::post('{courtType:id}/deactivate', [CourtTypeController::class, 'destroy']);
+        Route::post('{courtType:id}/reactivate', [CourtTypeController::class, 'reactivate']);
     });
 
     Route::get('/home', function() {

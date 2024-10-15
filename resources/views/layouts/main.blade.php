@@ -23,7 +23,7 @@
       <nav id="sidebar" class="sidebar-wrapper">
         <div class="sidebar-content">
           <div class="sidebar-brand">
-            <a href="#">KITA GERAK ADMIN</a>
+            <a href="/home">KITA GERAK ADMIN</a>
             <div id="close-sidebar">
               <i class="fas fa-times"></i>
             </div>
@@ -95,6 +95,12 @@
                     </li>
                   </ul>
                 </div>
+              </li>
+              <li class="sidebar-dropdown">
+                <a href="/courtTypes">
+                  <i class="fa fa-book"></i>
+                  <span>Court Type</span>
+                </a>
               </li>
               <li class="sidebar-dropdown">
                 <a href="/halamanrahasiaregisterhanyauntukadmin2">

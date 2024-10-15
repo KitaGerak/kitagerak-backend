@@ -45,8 +45,9 @@
         <h4>Courts</h4>
         <ul>
         @foreach($venue->courts as $court)
-        <li>
-            <a href="{{ url('/courts/' . $court->id) }}">{{ $court->name }}</a>
+        <li class="mb-3">
+            <a href="{{ url('/courts/' . $court->id) }}">{{ $court->name }}</a><br>
+            <img src="@php echo str_replace("private", env("APP_URL"), $court->images[0]->url) @endphp" style="max-width: 300px" alt="{{ $court->name }}">
         </li>
         @endforeach
         </ul>

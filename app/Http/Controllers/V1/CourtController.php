@@ -8,8 +8,10 @@ use App\Http\Requests\V1\UpdateCourtRequest;
 use App\Http\Requests\V1\StoreCourtRequest;
 use App\Http\Resources\V1\CourtCollection;
 use App\Http\Resources\V1\CourtResource;
+use App\Http\Resources\V1\CourtTypeCollection;
 use App\Models\Court;
 use App\Models\CourtImage;
+use App\Models\CourtType;
 use App\Services\V1\CourtQuery;
 
 class CourtController extends Controller
@@ -187,5 +189,11 @@ class CourtController extends Controller
     public function destroy (Court $court) {
         $court->status = 0;
         $court->save();
+    }
+
+    public function getCourtTypes() {
+        $res = CourtType::where('status', 1)->get();
+
+        return new CourtTypeCollection($res);
     }
 }
