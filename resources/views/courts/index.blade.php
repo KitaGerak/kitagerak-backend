@@ -21,6 +21,7 @@
         <table id="dataTable" class="table table-striped">
             <thead>
                 <tr>
+                    <th scope="col">ID</th>
                     <th scope="col">Nama</th>
                     <th scope="col">Dari Venue</th>
                     <th scope="col">Deskripsi</th>
@@ -36,6 +37,7 @@
             <tbody>
                 @foreach ($courts as $court)
                     <tr>
+                        <td>{{ $court->id }}</td>
                         <td>{{ $court->name }}</td>
                         <td>
                             <a target="_blank" href="{{ url("/venues/" . $court->venue->id) }}">{{ $court->venue->name }}</a><br>

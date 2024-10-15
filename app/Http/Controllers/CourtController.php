@@ -13,13 +13,13 @@ class CourtController extends Controller
         $status = $request->query('status');
         if ($status != null) {
             if ($status == "pending") {
-                $courts = Court::where('status', -1)->orWhere('status', -2)->get();
+                $courts = Court::where('status', -1)->orWhere('status', -2)->orderBy('id', 'desc')->get();
                 $title = "Pending Courts";
             } else if ($status == "active") {
-                $courts = Court::where('status', 1)->get();
+                $courts = Court::where('status', 1)->orderBy('id', 'desc')->get();
             }
         } else {
-            $courts = Court::all();
+            $courts = Court::orderBy('id', 'desc')->get();
             $title = "All Courts";
         }
 

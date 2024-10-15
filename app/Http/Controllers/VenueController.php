@@ -14,13 +14,13 @@ class VenueController extends Controller
         $title = "Active Venues";
         if ($status != null) {
             if ($status == "pending") {
-                $venues = Venue::where('status', -1)->orWhere('status', -2)->get();
+                $venues = Venue::where('status', -1)->orWhere('status', -2)->orderBy('id', 'desc')->get();
                 $title = "Pending Venues";
             } else if ($status == "active") {
-                $venues = Venue::where('status', 1)->get();
+                $venues = Venue::where('status', 1)->orderBy('id', 'desc')->get();
             }
         } else {
-            $venues = Venue::all();
+            $venues = Venue::orderBy('id', 'desc')->get();
             $title = "All Venues";
         }
         

@@ -21,6 +21,7 @@
         <table id="dataTable" class="table table-striped">
             <thead>
                 <tr>
+                    <th scope="col">ID</th>
                     <th scope="col">Nama</th>
                     <th scope="col">Alamat</th>
                     <th scope="col">Identitas Pemilik</th>
@@ -32,6 +33,7 @@
             <tbody>
                 @foreach ($venues as $venue)
                     <tr>
+                        <td>{{ $venue->id }}</td>
                         <td>{{ $venue->name }}</td>
                         <td>{{ $venue->address->street }}, {{ $venue->address->city }}</td>
                         <td>
