@@ -16,6 +16,10 @@ class VenueResource extends JsonResource
     public function toArray($request)
     {
         $rating = DB::select('SELECT SUM(number_of_people) AS totalNumberOfPeople, AVG(sum_rating) AS totalRating FROM `courts` GROUP BY venue_id HAVING venue_id = ?', [$this->id]);
+        $messages = [];
+        foreach ($this->rejectionMessages as $message) {
+            array_push($messages, $message->reason);
+        }
         return [
             'id' => $this->id,
             'name' => $this->name,
@@ -25,6 +29,7 @@ class VenueResource extends JsonResource
             'status' => $this->status,
             'courts' => CourtResource::collection($this->whenLoaded('courts')),
             'rating' => $rating,
+            'rejectionMessages' => $messages
         ];
     }
 }

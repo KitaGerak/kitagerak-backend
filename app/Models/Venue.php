@@ -26,6 +26,10 @@ class Venue extends Model
         return $this->belongsTo(Address::class);
     }
 
+    public function openDays() {
+        return $this->hasMany(VenueOpenDays::class);
+    }
+
     // public function venueOwner(): BelongsToMany
     // {
     //     return $this->belongsToMany(User::class, 'venue_owner_and_venue');
@@ -38,5 +42,9 @@ class Venue extends Model
     public function facilities() {
         // return $this->belongsToMany
         
+    }
+
+    public function rejectionMessages() {
+        return $this->hasMany(VenueRejectionReason::class)->where('venue_rejection_reasons.status', '<>', 0);
     }
 }

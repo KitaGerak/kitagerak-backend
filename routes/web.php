@@ -1,12 +1,13 @@
 <?php
 
-use App\Http\Controllers\V1\ImageController;
-use App\Http\Controllers\V1\ScheduleController;
+// use App\Http\Controllers\V1\ScheduleController;
+
+use App\Http\Controllers\AccountController;
+use App\Http\Controllers\CourtController;
 use App\Http\Controllers\VenueController;
-use App\Http\Controllers\VerifyEmailController;
-use GuzzleHttp\Psr7\Request;
-use Illuminate\Foundation\Auth\EmailVerificationRequest;
-use Illuminate\Support\Facades\Auth;
+// use App\Http\Controllers\VerifyEmailController;
+// use Illuminate\Foundation\Auth\EmailVerificationRequest;
+// use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 
@@ -20,6 +21,18 @@ use Illuminate\Support\Facades\Storage;
 | be assigned to the "web" middleware group. Make something great!
 |
 */
+
+Route::get("/images/blank", function() {
+    $folder_name = "private/images";
+
+    $path = $folder_name.'/'."blank.webp";
+
+    if(!Storage::exists($path)){
+        abort(404);
+    }
+
+    return Storage::response($path);
+});
 
 Route::get("/images/{sector}/{id}/{fileName}", function($sector, $id, $fileName) {
     $folder_name = "private/images/$sector/$id";
@@ -42,13 +55,13 @@ Route::get('/verified', function () {
 });
 
 
-Route::get('/test', [ScheduleController::class, "generateSchedule"]);
-Route::get('/images/{fileName}', [ImageController::class, "show"]);
+// Route::get('/test', [ScheduleController::class, "generateSchedule"]);
+// Route::get('/images/{fileName}', [ImageController::class, "show"]);
 
-Route::get('/email/verify/{id}/{hash}', [VerifyEmailController::class, '__invoke']);
+// Route::get('/email/verify/{id}/{hash}', [VerifyEmailController::class, '__invoke']);
 
-Auth::routes(['verify' => true]);
-Route::get('/images/{folder}/{fileName?}', [ImageController::class, "show"]);
+// Auth::routes(['verify' => true]);
+// Route::get('/images/{folder}/{fileName?}', [ImageController::class, "show"]);
 
 Route::get('/payment-success', function() {
     //TODO:: Create an UI
@@ -60,8 +73,33 @@ Route::get('/payment-failed', function() {
     return "Pembayaran Gagal";
 });
 
-Route::group(['prefix' => 'venues'], function(){
-    Route::get('/', [VenueController::class, 'index']);
-    Route::get('/{venueId}/detail', [VenueController::class, 'detail']);
-    Route::post('/{venueId}/accept', [VenueController::class, 'acceptVenueRegistration']);
+Route::group(['middleware' => 'auth'], function() {
+    Route::group(['prefix' => 'venues'], function(){
+        Route::get('/', [VenueController::class, 'index']);
+        Route::get('/{venue:id}', [VenueController::class, 'detail']);
+        Route::post('/{venue:id}/accept', [VenueController::class, 'acceptVenueRegistration']);
+        Route::post('/{venue:id}/decline', [VenueController::class, 'declineVenueRegistration']);
+    });
+    
+    Route::group(['prefix' => 'courts'], function(){
+        Route::get('/', [CourtController::class, 'index']);
+        Route::get('/{court:id}', [CourtController::class, 'show']);
+        Route::post('/{court:id}/accept', [CourtController::class, 'acceptCourtRegistration']);
+        Route::post('/{court:id}/decline', [CourtController::class, 'declineCourtRegistration']);
+    });
+
+    Route::get('/home', function() {
+        return view('home', [
+            "title" => "Home"
+        ]);
+    });
 });
+
+Route::get('/halamanrahasiaregisterhanyauntukadmin', [AccountController::class, "register"]);
+Route::get('/halamanrahasiaregisterhanyauntukadmin2', [AccountController::class, "register2"]);
+Route::get('/halamanrahasialoginhanyauntukadmin', [AccountController::class, "login"])->name('login')->middleware('guest');
+
+Route::post('/register', [AccountController::class, "registerAddData"]);
+Route::post('/login', [AccountController::class, "authenticate"]);
+
+Route::post('/logout', [AccountController::class, "logout"])->middleware('auth');

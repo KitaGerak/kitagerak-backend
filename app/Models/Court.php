@@ -45,4 +45,8 @@ class Court extends Model
     public function courtCloseDays() {
         return $this->hasMany(CourtCloseDay::class)->where('court_close_days.close_at', '>=', DB::raw(NOW()));
     }
+
+    public function rejectionMessages() {
+        return $this->hasMany(CourtRejectionReason::class)->where('court_rejection_reasons.status', '<>', 0);
+    }
 }
