@@ -2,15 +2,12 @@
 
 use App\Http\Controllers\V1\AccountController;
 use App\Http\Controllers\V1\CourtController;
-use App\Http\Controllers\V1\CourtTypeController;
 use App\Http\Controllers\V1\InvoiceController;
 use App\Http\Controllers\V1\PaymentWebhookController;
 use App\Http\Controllers\V1\RatingController;
 use App\Http\Controllers\V1\ScheduleController;
 use App\Http\Controllers\V1\TransactionController;
 use App\Http\Controllers\V1\VenueController;
-use App\Http\Controllers\V1\VenueOwnerController;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -23,6 +20,10 @@ use Illuminate\Support\Facades\Route;
 | be assigned to the "api" middleware group. Make something great!
 |
 */
+
+Route::get('/test', function() { //simple test to call laravel API
+    return "API Success!";
+});
 
 Route::group(['prefix' => 'v1'], function() {
 
@@ -73,8 +74,6 @@ Route::group(['prefix' => 'v1'], function() {
         Route::group(['prefix' => 'schedules'], function() {
             Route::get('/', [ScheduleController::class, "index"]);
 
-            // Route::post('/', [ScheduleController::class, "store"]);
-
             Route::put('/{schedule:id}', [ScheduleController::class, "update"]);
             
             Route::delete('/{schedule:id}', [ScheduleController::class, "destroy"]);
@@ -100,11 +99,11 @@ Route::group(['prefix' => 'v1'], function() {
 
         Route::group(['prefix' => 'account'], function() {
             Route::get('/{user:id}', [AccountController::class, "show"]);
-            Route::post('/updateData/{user:id}', [AccountController::class, "updateData"]);
+            Route::post('/{user:id}', [AccountController::class, "updateData"]);
         });
 
         Route::get('/users/{ownerId}/employees', [AccountController::class, "getEmployees"]);
-        
+
     });
 
     Route::post('/register', [AccountController::class, "register"]);
@@ -115,4 +114,4 @@ Route::group(['prefix' => 'v1'], function() {
 Route::post('/payments/webhook/xendit', [PaymentWebhookController::class, "xenditWebhook"]);
 Route::get('/invoices/{invoiceId}', [InvoiceController::class, "getXenditInvoice"]);
 
-Auth::routes(['verify' => true]);
+// Auth::routes(['verify' => true]); //???

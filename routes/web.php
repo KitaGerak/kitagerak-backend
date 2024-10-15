@@ -8,6 +8,7 @@ use GuzzleHttp\Psr7\Request;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
 
 /*
 |--------------------------------------------------------------------------
@@ -20,12 +21,16 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-// Route::get('/', function () {
-//     return view('swagger-ui');
-// });
+Route::get("/images/{sector}/{id}/{fileName}", function($sector, $id, $fileName) {
+    $folder_name = "private/images/$sector/$id";
 
-Route::get('/', function () {
-    return "KitaGerak API";
+    $path = $folder_name.'/'.$fileName;
+
+    if(!Storage::exists($path)){
+        abort(404);
+    }
+
+    return Storage::response($path);
 });
 
 Route::get('/', function () {

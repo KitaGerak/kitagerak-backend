@@ -4,6 +4,7 @@ namespace App\Http\Controllers\V1;
 
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\V1\UpdateUserRequest;
 use App\Http\Resources\V1\UserCollection;
 use App\Http\Resources\V1\UserResource;
 use App\Models\User;
@@ -70,12 +71,13 @@ class AccountController extends Controller
             }
         }
         // return new UserResource($user);
+        $user['photo_url'] = str_replace("private", env("APP_URL"), $user['photo_url']);
         return response()->json([
             'data' => $user
         ]);
     }
 
-    public function updateData(Request $request, User $user) {
+    public function updateData(UpdateUserRequest $request, User $user) {
         $user->update($request->all());
 
         if ($request->has('image')) {
@@ -85,12 +87,12 @@ class AccountController extends Controller
 
             $extension = $image->getClientOriginalExtension();
             if (in_array(strtolower($extension), $allowedImageExtensions)) {
-                $fileName = $image->store('private/images/user_profiles');
+                $fileName = $image->store("private/images/user_profiles/$user->id");
                 $user->photo_url = $fileName;
                 $user->save();
             }
         }
-
+        $user['photo_url'] = str_replace("private", env("APP_URL"), $user['photo_url']);
         return response()->json([
             "data" => $user,
         ]);
