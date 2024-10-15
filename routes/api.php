@@ -54,9 +54,9 @@ Route::group(['prefix' => 'v1'], function() {
         });
 
         Route::group(['prefix' => 'schedules'], function() {
-            Route::get('/', [ScheduleController::class, "index"]);
+            // Route::get('/', [ScheduleController::class, "index"]);
 
-            Route::put('/{schedule:id}', [ScheduleController::class, "update"]);
+            Route::post('/', [ScheduleController::class, "store"]);
             
             Route::delete('/{schedule:id}', [ScheduleController::class, "destroy"]);
         });

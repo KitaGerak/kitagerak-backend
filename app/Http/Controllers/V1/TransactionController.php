@@ -4,6 +4,7 @@ namespace App\Http\Controllers\V1;
 
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreTransactionRequest;
 use App\Http\Requests\V1\UpdateTransactionRequest;
 use App\Http\Resources\V1\ScheduleCollection;
 use App\Http\Resources\V1\TransactionCollection;
@@ -61,7 +62,7 @@ class TransactionController extends Controller
             $filter = new TransactionQuery();
             $queryItems = $filter->transform($request); //[['column', 'operator', 'value']]
 
-            $res = Transaction::select('transactions.*')->with('schedules')->with('court')->with('transactionStatus');
+            $res = Transaction::select('transactions.*')->with('schedules')->with('court')->with('status');
 
             if (count($queryItems) > 0) {
                 $res = $res->leftJoin('users as u1', 'u1.id', 'transactions.user_id')->leftJoin('transaction_statuses as ts', 'ts.id', '=', 'transactions.transaction_status_id')->leftJoin('courts as c', 'c.id', 'transactions.court_id')->leftJoin('venues as v', 'v.id', 'c.venue_id')->leftJoin('users as u2', 'u2.id', 'v.owner_id')->where($queryItems);
@@ -81,7 +82,7 @@ class TransactionController extends Controller
             $userAuth = auth('sanctum')->user();
 
             if ($userAuth->role_id == 3 || $userAuth->id == $transaction->user->id || $userAuth->id == $transaction->court->venue->owner->id) {
-                return new TransactionResource($transaction->loadMissing('schedules')->loadMissing('court')->loadMissing('transactionStatus'));
+                return new TransactionResource($transaction->loadMissing('schedules')->loadMissing('court')->loadMissing('status'));
             } 
 
             return response()->json([
@@ -195,7 +196,7 @@ class TransactionController extends Controller
         return new ScheduleCollection($res);
     }
 
-    public function store(Request $request) {
+    public function store(StoreTransactionRequest $request) {
 
         $checkUserSanctum = $this->checkUserSanctum($request->userId);
 

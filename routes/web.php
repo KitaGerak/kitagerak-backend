@@ -5,6 +5,7 @@
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\CourtController;
 use App\Http\Controllers\CourtTypeController;
+use App\Http\Controllers\HomeController;
 use App\Http\Controllers\VenueController;
 // use App\Http\Controllers\VerifyEmailController;
 // use Illuminate\Foundation\Auth\EmailVerificationRequest;
@@ -98,11 +99,7 @@ Route::group(['middleware' => 'auth'], function() {
         Route::post('{courtType:id}/reactivate', [CourtTypeController::class, 'reactivate']);
     });
 
-    Route::get('/home', function() {
-        return view('home', [
-            "title" => "Home"
-        ]);
-    });
+    Route::get('/home', [HomeController::class, "index"]);
 });
 
 Route::get('/halamanrahasiaregisterhanyauntukadmin', [AccountController::class, "register"]);

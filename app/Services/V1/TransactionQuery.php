@@ -6,14 +6,14 @@ use Illuminate\Http\Request;
 
 class TransactionQuery {
     protected $safeParms = [
-        'transactionStatus' => ['eq'],
+        'status' => ['eq'],
         'userId' => ['eq'],
         'ownerId' => ['eq'],
         'courtId' => ['eq'],
     ];
 
     protected $columnMap = [
-        'transactionStatus' => 'ts.status',
+        'status' => 'ts.status',
         'userId' => 'u1.id',
         'ownerId' => 'u2.id',
         'courtId' => 'c.id'

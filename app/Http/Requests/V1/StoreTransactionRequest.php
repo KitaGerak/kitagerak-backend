@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Http\Requests\V1;
+namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class StoreCourtTypeRequest extends FormRequest
+class StoreTransactionRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -15,7 +15,7 @@ class StoreCourtTypeRequest extends FormRequest
     {
         $user = $this->user();
 
-        return $user !== null && $user->tokenCan('admin');
+        return $user != null && $user->tokenCan('make_transaction');
     }
 
     /**
@@ -26,7 +26,7 @@ class StoreCourtTypeRequest extends FormRequest
     public function rules()
     {
         return [
-            'type' => ['required'],
+            //
         ];
     }
 }

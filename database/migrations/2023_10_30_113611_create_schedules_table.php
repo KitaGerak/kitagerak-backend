@@ -20,7 +20,7 @@ return new class extends Migration
             $table->time('time_start');
             $table->time('time_finish');
             $table->integer('interval');
-            $table->string('availability')->default(1);
+            $table->integer('availability')->default(1);
             $table->double('regular_price')->default(0);
             $table->double('member_price')->default(0);
             $table->unsignedBigInteger('transaction_id')->nullable();

@@ -86,7 +86,7 @@ class TransactionResource extends JsonResource
             'schedules' => new ScheduleCollection($this->whenLoaded('schedules')),
             'court' => new CourtResource($this->whenLoaded('court')),
             'reason' => $this->reason,
-            'transactionStatus' => new TransactionStatusResource($this->whenLoaded('transactionStatus')),
+            'status' => new TransactionStatusResource($this->whenLoaded('status')),
             //TODO
             // 'isReviewed' => $rating > 0 ? true : false,
             'venueId' => $this->court->venue->id,
