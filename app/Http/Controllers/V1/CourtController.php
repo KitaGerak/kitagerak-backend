@@ -26,6 +26,10 @@ class CourtController extends Controller
         if ($request->query('venue') != null && $request->query('venue') == "included") {
             array_push($with, 'venue');
         }
+
+        if ($request->query('owner') != null && $request->query('owner') == "included") {
+            array_push($with, 'owner');
+        }
         
         $courts = Court::select('courts.*')->with($with)->where('courts.status', '<>', 0);
 
@@ -71,6 +75,10 @@ class CourtController extends Controller
 
         if ($request->query('venue') != null && $request->query('venue') == "included") {
             $c = $c->loadMissing('venue');
+        }
+
+        if ($request->query('owner') != null && $request->query('owner') == "included") {
+            $c = $c->loadMissing('owner');
         }
 
         return new CourtResource($c);

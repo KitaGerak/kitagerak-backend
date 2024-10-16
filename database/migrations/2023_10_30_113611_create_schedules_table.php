@@ -23,6 +23,8 @@ return new class extends Migration
             $table->integer('availability')->default(1);
             $table->double('regular_price')->default(0);
             $table->double('member_price')->default(0);
+            $table->double('regular_discount')->default(0);
+            $table->double('member_discount')->default(0);
             $table->unsignedBigInteger('transaction_id')->nullable();
             $table->integer('status')->default(1);
             $table->foreign('court_id')->references('id')->on('courts');

@@ -54,7 +54,7 @@ Route::group(['prefix' => 'v1'], function() {
         });
 
         Route::group(['prefix' => 'schedules'], function() {
-            // Route::get('/', [ScheduleController::class, "index"]);
+            Route::get('/', [ScheduleController::class, "index"]);
 
             Route::post('/generate', [ScheduleController::class, "generateSchedules"]);
 

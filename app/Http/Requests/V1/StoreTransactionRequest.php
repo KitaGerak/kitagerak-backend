@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Requests;
+namespace App\Http\Requests\V1;
 
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -13,9 +13,10 @@ class StoreTransactionRequest extends FormRequest
      */
     public function authorize()
     {
-        $user = $this->user();
-
-        return $user != null && $user->tokenCan('make_transaction');
+        // $user = $this->user();
+        // return $user != null && $user->tokenCan('make_transaction');
+        
+        return true;
     }
 
     /**

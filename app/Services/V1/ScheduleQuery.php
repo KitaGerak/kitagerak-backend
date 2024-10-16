@@ -4,28 +4,21 @@ namespace App\Services\v1;
 
 use Illuminate\Http\Request;
 
-class CourtQuery {
+class ScheduleQuery {
     protected $safeParms = [
-        'name' => ['eq', 'like'],
-        'description' => ['eq', 'like'],
-        'venueId' => ['eq'],
-        'floorType' => ['eq', 'like'],
-        'courtTypeId' => ['eq'],
-        'regularPrice' => ['eq', 'gte', 'gt', 'lte', 'lt', 'in'],
-        'size' => ['eq', 'gte', 'gt', 'lte', 'lt', 'in'],
-        'rating' => ['eq', 'gte', 'gt', 'lte', 'lt', 'in'],
+        'courtId' => ['eq'],
+        'availability' => ['eq'],
+        'date' => ['eq', 'lt', 'lte', 'gt', 'gte'],
+        'timeStart' => ['eq', 'lt', 'lte', 'gt', 'gte'],
+        'timeFinish' => ['eq', 'lt', 'lte', 'gt', 'gte']
     ];
 
     protected $columnMap = [
-        'name' => 'courts.name',
-        'description' => 'courts.description',
-        'venueId' => 'courts.venue_id',
-        'floorType' => 'courts.floor_type',
-        'courtTypeId' => 'courts.court_type_id',
-        'regularPrice' => 'courts.regular_price',
-        'memberPrice' => 'courts.member_price',
-        'size' => 'courts.size',
-        'rating' => 'courts.rating',
+        'courtId' => 'schedules.court_id',
+        'availability' => 'schedules.availability',
+        'date' => 'schedules.date',
+        'timeStart' => 'schedules.time_start',
+        'timeFinish' => 'schedules.time_finish'
     ];
 
     protected $operatorMap = [

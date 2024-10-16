@@ -4,7 +4,7 @@ namespace App\Http\Controllers\V1;
 
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\StoreTransactionRequest;
+use App\Http\Requests\V1\StoreTransactionRequest;
 use App\Http\Requests\V1\UpdateTransactionRequest;
 use App\Http\Resources\V1\ScheduleCollection;
 use App\Http\Resources\V1\TransactionCollection;
@@ -151,30 +151,59 @@ class TransactionController extends Controller
     }
 
     public function checkSchedules(Request $request) {
-        $dayOfWeeks = "";
+        // $dayOfWeeks = "";
         $timeStart = "";
         $timeFinish = "";
+        $res = [];
 
         if ($request->startDate != null && $request->monthInterval != null && $request->schedules != null) {
-            foreach ($request->schedules as $i=>$schedule) {
-                if ($i != count($request->schedules) - 1) {
-                    $dayOfWeeks .= "'" . $schedule['dayOfWeek'] . "'" . ",";
-                } else {
-                    $dayOfWeeks .= "'" . $schedule['dayOfWeek'] . "'";
-                }
-                foreach($schedule['times'] as $j=>$time) {
-                    $tm = explode("-", $time);
-                    if ($j != count($schedule['times']) - 1) {
-                        $timeStart .= "'" . $tm[0] . "'" . ", ";
-                        $timeFinish .= "'" . $tm[1] . "'" . ", ";
-                    } else {
-                        $timeStart .= "'" . $tm[0] . "'";
-                        $timeFinish .= "'" . $tm[1] . "'";
-                    }
-                }
+            $today = date("Y-m-d");
+            if ($request->startDate < $today) {
+                return response()->json([
+                    "status" => false,
+                    "message" => "Start date tidak boleh sebelum hari ini",
+                ]);
             }
 
-            $res = DB::Select("SELECT *, DAYOFWEEK(date) AS dayOfWeek FROM `schedules` WHERE date > NOW() AND date >= ? AND court_id = ? AND date <= DATE_ADD(?, interval ? MONTH) AND availability = 1 AND status = 1 AND time_start IN ($timeStart) AND time_finish IN ($timeFinish) HAVING dayOfWeek IN ($dayOfWeeks) ORDER BY date, time_start", [$request->startDate, $request->courtId, $request->startDate, $request->monthInterval]);
+            //TODO Check jika court tutup / tidak
+
+            foreach ($request->schedules as $i=>$schedule) {
+                // if ($i != count($request->schedules) - 1) {
+                //     $dayOfWeeks .= "'" . $schedule['dayOfWeek'] . "'" . ",";
+                // } else {
+                //     $dayOfWeeks .= "'" . $schedule['dayOfWeek'] . "'";
+                // }
+                $timeStart = "";
+                $timeFinish = "";
+                foreach($schedule['times'] as $time) {
+                    $tm = explode("-", $time);
+
+                    if (!str_contains($timeStart, $tm[0])) {
+                        $timeStart .= "'" . $tm[0] . "'" . ", ";
+                    }
+
+                    if (!str_contains($timeFinish, $tm[1])) {
+                        $timeFinish .= "'" . $tm[1] . "'" . ", ";
+                    }
+                }
+
+                if ($timeStart[strlen($timeStart)-2] == ",") {
+                    $timeStart = substr_replace($timeStart, '', -2);
+                }
+    
+                if ($timeFinish[strlen($timeFinish)-2] == ",") {
+                    $timeFinish = substr_replace($timeFinish, '', -2);
+                }
+
+                // $res = DB::Select("SELECT *, DAYOFWEEK(date) AS dayOfWeek FROM `schedules` WHERE date > NOW() AND date >= ? AND court_id = ? AND date <= DATE_ADD(?, interval ? MONTH) AND availability = 1 AND status = 1 AND time_start IN ($timeStart) AND time_finish IN ($timeFinish) HAVING dayOfWeek IN ($dayOfWeeks) ORDER BY date, time_start", [$request->startDate, $request->courtId, $request->startDate, $request->monthInterval]);
+
+                $rs = DB::Select("SELECT *, DAYOFWEEK(date) AS dayOfWeek FROM `schedules` WHERE date > NOW() AND date >= ? AND court_id = ? AND date <= DATE_ADD(?, interval ? MONTH) AND availability = 1 AND status = 1 AND time_start IN ($timeStart) AND time_finish IN ($timeFinish) HAVING dayOfWeek = ? ORDER BY date, time_start", [$request->startDate, $request->courtId, $request->startDate, $request->monthInterval, $schedule['dayOfWeek']]);
+                
+                foreach ($rs as $r) {
+                    array_push($res, $r);
+                }
+            }
+            
         } else if ($request->scheduleIds != null) {
             $scheduleIds = "";
             foreach ($request->scheduleIds as $i=>$scheduleId) {
@@ -243,13 +272,14 @@ class TransactionController extends Controller
             $insertedTransaction = Transaction::create([
                 'external_id' => $externalId,
                 'user_id' => $request->userId,
+                'court_id' => $request->courtId,
                 'amount_rp' => -1,
                 'transaction_status_id' => 5,
             ]);
 
             DB::statement("UPDATE `schedules` SET transaction_id = $insertedTransaction->id, availability = 0 WHERE id IN ($scheduleIds)");
 
-            $totalPrice = DB::Select("SELECT SUM($query) AS amount_rp FROM `schedules` WHERE transaction_id = $insertedTransaction->id")[0]['amount_rp'];
+            $totalPrice = DB::Select("SELECT SUM($query) AS amount_rp FROM `schedules` WHERE transaction_id = $insertedTransaction->id")[0]->amount_rp;
             $fee = Fee::where('name', 'app_admin')->first()->amount_rp;
 
             //XENDIT
@@ -265,13 +295,15 @@ class TransactionController extends Controller
                 ], 500);
             }
 
-            $schedule = Schedule::where('id', $request->scheduleIds[0]);
-
+            // NO USE
+            // $schedule = Schedule::where('id', $request->scheduleIds[0]);
             // DB::statement("UPDATE `transactions` SET checkout_link = '" . $xenditResponse->collect()['invoice_url'] . "', invoice_id = '" . $xenditResponse->collect()['id'] . "', amount_rp = (SELECT SUM($query) AS amount_rp FROM `schedules` WHERE transaction_id = $insertedTransaction->id) + (SELECT amount_rp FROM `fees` WHERE name = 'app_admin'), schedule_id = " . $request->scheduleIds[0] . " WHERE id = $insertedTransaction->id");
+            //NO USE
 
-            DB::statement("UPDATE `transactions` SET checkout_link = '" . $xenditResponse->collect()['invoice_url'] . "', invoice_id = '" . $xenditResponse->collect()['id'] . "', amount_rp = (SELECT SUM($query) AS amount_rp FROM `schedules` WHERE transaction_id = $insertedTransaction->id) + (SELECT amount_rp FROM `fees` WHERE name = 'app_admin'), court_id = " . $schedule->court->id . " WHERE id = $insertedTransaction->id");
+            DB::statement("UPDATE `transactions` SET checkout_link = '" . $xenditResponse->collect()['invoice_url'] . "', invoice_id = '" . $xenditResponse->collect()['id'] . "', amount_rp = (SELECT SUM($query) AS amount_rp FROM `schedules` WHERE transaction_id = $insertedTransaction->id) + (SELECT amount_rp FROM `fees` WHERE name = 'app_admin') WHERE id = $insertedTransaction->id");
 
-            return new TransactionResource($insertedTransaction);
+            $res = Transaction::where('id', $insertedTransaction->id)->first();
+            return new TransactionResource($res);
         } else {
             return response()->json([
                 'status' => false,

@@ -9,36 +9,37 @@ use App\Http\Requests\V1\UpdateScheduleRequest;
 use App\Http\Resources\V1\ScheduleResource;
 use App\Models\Schedule;
 use App\Models\Venue;
-use Carbon\Carbon;
+use App\Services\v1\ScheduleQuery;
 use Illuminate\Support\Facades\DB;
 
 class ScheduleController extends Controller
 {    
-    // public function index(Request $request) {
-    //     $courtId = $request->query('courtId');
+    public function index(Request $request) {
+        // $courtId = $request->query('courtId');
         
-    //     $dayOfWeek = $request->query('dayOfWeek');
-    //     $startDate = $request->query('startDate');
-    //     $monthInterval = $request->query('monthInterval');
+        // $dayOfWeek = $request->query('dayOfWeek');
+        // $monthInterval = $request->query('monthInterval');
 
-    //     $date = $request->query('date');
-    //     // SELECT *, DAYOFWEEK(date) AS day_of_week, availability, status FROM `schedules` WHERE date > NOW() AND court_id = 1 AND date <= DATE_ADD('2024-10-02', interval 1 MONTH) HAVING day_of_week = 4 ORDER BY date, time_start;
-        
-    //     if ($courtId != null && $dayOfWeek != null && $startDate != null && $monthInterval != null) {
-    //         $res = DB::Select("SELECT *, DAYOFWEEK(date) AS dayOfWeek, availability, status FROM `schedules` WHERE date > NOW() AND date >= ? AND court_id = ? AND date <= DATE_ADD(?, interval ? MONTH) HAVING dayOfWeek = ? ORDER BY date, time_start", [$startDate, $courtId, $startDate, $monthInterval, $dayOfWeek]);
-    //     } else if ($courtId != null && $date != null) {
-    //         $res = DB::Select("SELECT *, DAYOFWEEK(date) AS dayOfWeek, availability, status FROM `schedules` WHERE date > NOW() AND date >= ? AND court_id = ? ORDER BY date, time_start", [$date, $courtId]);
-    //     } else {
-    //         //error
-    //         return response()->json([
-    //             'status' => false,
-    //             // TODO: Change error message
-    //             'message' => 'Parameter tidak lengkap',
-    //         ], 422);
-    //     }
+        $filter = new ScheduleQuery();
+        $queryItems = $filter->transform($request);
 
-    //     return $res;
-    // }
+        // $date = $request->query('date');
+
+        $schedules = Schedule::select('*')->where('schedules.status', '<>', 0)->where('schedules.availability', '<>', 0);
+
+        if (count($queryItems) != 0) {
+            // $schedules = $schedules->leftJoin('courts', 'courts.venue_id', '=', 'venues.id')->leftJoin('court_types', 'court_types.id', '=', 'courts.court_type_id')->leftJoin('addresses', 'addresses.id', '=', 'venues.address_id');
+            $schedules = $schedules->where($queryItems)->get();   
+
+            return $schedules;
+
+        } else {
+            return response()->json([
+                "status" => false,
+                "message" => "Params?"
+            ]);
+        }
+    }
 
     public function generateSchedules() {
         // $date = "2024-10-13";
@@ -162,6 +163,10 @@ class ScheduleController extends Controller
     public function store(StoreScheduleRequest $request)
     {
         return new ScheduleResource(Schedule::create($request->all()));
+    }
+
+    public function update(UpdateScheduleRequest $request, Schedule $schedule) {
+        $schedule->update($request->all());
     }
 
     public function destroy(Schedule $schedule)
