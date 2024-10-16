@@ -44,6 +44,7 @@ Route::group(['prefix' => 'v1'], function() {
 
         Route::group(['prefix' => 'courts'], function() {
             Route::get('/types', [CourtController::class, "getCourtTypes"]);
+            Route::post('/{court:id}/setCloseDay', [CourtController::class, "courtCloseDay"]);
 
             Route::post('/', [CourtController::class, "store"]);
             

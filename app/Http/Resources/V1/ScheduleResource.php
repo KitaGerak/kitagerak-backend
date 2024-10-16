@@ -57,7 +57,7 @@ class ScheduleResource extends JsonResource
         // }
         
         $offer = NULL;
-        if (isset($this->transaction) && str_contains($this->transaction->external_id, "DAILY")) {
+        if (isset($this->transaction) && str_contains($this->transaction->external_id, "RGLR")) {
             $price = $this->regular_price;
             $discount = $this->regular_discount;
         } else if (isset($this->transaction) && str_contains($this->transaction->external_id, "MEMBER")){

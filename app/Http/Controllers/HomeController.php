@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\SystemWarning;
 use App\Models\Transaction;
 use Illuminate\Http\Request;
 
@@ -25,9 +26,12 @@ class HomeController extends Controller
     public function index()
     {
         $transaction = Transaction::all();
+        $systemWarnings = SystemWarning::all();
+        
         return view('home', [
             "title" => "Admin Dashboard",
-            "transactions" => $transaction
+            "transactions" => $transaction,
+            "systemWarnings" => $systemWarnings,
         ]);
     }
 }

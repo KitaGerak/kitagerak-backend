@@ -6,12 +6,36 @@
 <div class="container">
     <h1 class="mb-4">{{ $title }}</h1>
 
+    @if(count($systemWarnings) > 0)
+    <h3>System Warning</h3>
+
+    <table id="dataWarning" class="table table-striped mb-5">
+        <thead>
+            <tr>
+            <th scope="col">#</th>
+            <th scope="col">Keterangan</th>
+            <th scope="col">Tanggal (Thn-bln-tgl J:M:D)</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach($systemWarnings as $i=>$warning)
+            <tr>
+                <th scope="row">{{ $i+1 }}</th>
+                <td>{!! $warning->message !!}</td>
+                <td>{{ $warning->created_at }}</td>
+            </tr>
+            @endforeach
+        </tbody>
+    </table>
+    @endif
+
+    <h3>List Transasi</h3>
     <table id="dataTable" class="table table-striped">
         <thead>
             <tr>
             <th scope="col">Nomor Transaksi</th>
             <th scope="col">Identitas Penyewa</th>
-            <th scope="col">Identitas Pemilik</th>
+            <th scope="col">Identitas Pemilik Lapangan</th>
             <th scope="col">Court</th>
             <th scope="col">Jadwal</th>
             <th scope="col">Status Pembayaran</th>
@@ -22,8 +46,16 @@
             @foreach($transactions as $transaction)
             <tr>
                 <th scope="row">{{ $transaction->external_id }}</th>
-                <td>{{ $transaction->user->name }}</td>
-                <td>{{ $transaction->court->venue->owner->name }}</td>
+                <td>
+                    Nama: {{ $transaction->user->name }}<br>
+                    Email: <a href="mailto: {{ $transaction->user->name }}">{{ $transaction->user->email }}</a><br>
+                    Telp: <strong>{{ $transaction->user->phone_number }}</strong>
+                </td>
+                <td>
+                    Nama: {{ $transaction->court->venue->owner->name }}<br>
+                    Email: <a href="mailto: {{ $transaction->court->venue->owner->email }}">{{ $transaction->court->venue->owner->email }}</a><br>
+                    Telp: <strong>{{ $transaction->court->venue->owner->phone_number }}</strong>
+                </td>
                 <td>{{ $transaction->court->name }}</td>
                 <td>
                     <ul>
@@ -35,7 +67,7 @@
                     </ul>
                 </td>
                 <td>
-                    {{ $transaction->status->status }}
+                    {{-- {{ $transaction->status->status }} --}}
                 </td>
                 <td>
                     <button class="btn btn-danger"><i class="fa fa-trash"></i></button>
@@ -43,6 +75,17 @@
             </tr>
             @endforeach
         </tbody>
+        <tfoot>
+            <tr>
+            <th scope="col">Nomor Transaksi</th>
+            <th scope="col">Identitas Penyewa</th>
+            <th scope="col">Identitas Pemilik Lapangan</th>
+            <th scope="col">Court</th>
+            <th scope="col">Jadwal</th>
+            <th scope="col">Status Pembayaran</th>
+            <th scope="col">Aksi</th>
+            </tr>
+        </tfoot>
     </table>
 </div>
 @endsection

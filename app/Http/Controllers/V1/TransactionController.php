@@ -165,7 +165,7 @@ class TransactionController extends Controller
                 ]);
             }
 
-            //TODO Check jika court tutup / tidak
+            //TODO Check jika court tutup / tidak -->SUDAH DILAKUKAN di courtclosedays
 
             foreach ($request->schedules as $i=>$schedule) {
                 // if ($i != count($request->schedules) - 1) {
@@ -262,7 +262,7 @@ class TransactionController extends Controller
                 $type = "MEMBER";
                 $query = "member_price - member_price * member_discount";
             } else {
-                $type = "DAILY";
+                $type = "RGLR";
                 $query = "regular_price - regular_price * regular_discount";
             }
 
@@ -285,7 +285,7 @@ class TransactionController extends Controller
             //XENDIT
             $user = User::where('id', $request->userId)->first();
             $fee = Fee::where('name', 'app_admin')->first()->amount_rp;
-            $externalId = "DAILY_" . time();
+            $externalId = "RGLR_" . time();
 
             $xenditResponse = $this->xenditPayment($externalId, $user, $totalPrice, $fee);
             if (!$xenditResponse->successful()) {
@@ -355,13 +355,13 @@ class TransactionController extends Controller
             $dateTimeNow = date('Y-m-d H:i:s');
 
             if (strtotime($firstSchedule->dateTime) > strtotime($dateTimeNow1d)) { //pengembalian 100%
-                if (str_contains($firstSchedule->externalId, 'DAILY')) { //harian
+                if (str_contains($firstSchedule->externalId, 'RGLR')) { //harian
                     return 1;
                 } else { // bulanan / member
                     return 0.5;
                 }
             } else if (strtotime($firstSchedule->dateTime) < strtotime($dateTimeNow1d) && strtotime($firstSchedule->dateTime) > strtotime($dateTimeNow) && ($firstSchedule->userId == $transaction->user_id || $currentUser == -4)) { //pengembalian 50% dan harus customer / Admin yang melakukan pembatalan. Kalau sudah kurang dari 24 jam, pemilik lapangan tidak bisa melakukan pembatalan! || currentUser -4 = Admin
-                if (str_contains($firstSchedule->externalId, 'DAILY')) { //harian
+                if (str_contains($firstSchedule->externalId, 'RGLR')) { //harian
                     return 0.5;
                 } else { // bulanan / member
                     return 0.5;

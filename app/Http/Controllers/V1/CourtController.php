@@ -10,9 +10,13 @@ use App\Http\Resources\V1\CourtCollection;
 use App\Http\Resources\V1\CourtResource;
 use App\Http\Resources\V1\CourtTypeCollection;
 use App\Models\Court;
+use App\Models\CourtCloseDay;
 use App\Models\CourtImage;
 use App\Models\CourtType;
+use App\Models\Schedule;
+use App\Models\SystemWarning;
 use App\Services\V1\CourtQuery;
+use Illuminate\Support\Facades\DB;
 
 class CourtController extends Controller
 {
@@ -122,14 +126,12 @@ class CourtController extends Controller
                     "status" => 0,
                     "message" => "Gagal memasukkan data. Anda bukan admin / pemilik lapangan"
                 ]);
+            } else if ($court->owner->id != $userAuth->id) {
+                return response()->json([
+                    "status" => 0,
+                    "message" => "Gagal memasukkan data. Anda bukan pemilik lapangan"
+                ]);
             }
-            // TODO
-            // else if ($venue->owner->id != $userAuth->id) {
-            //     return response()->json([
-            //         "status" => 0,
-            //         "message" => "Gagal memasukkan data. Anda bukan pemilik lapangan"
-            //     ]);
-            // }
         } else {
             return response()->json([
                 "status" => 0,
@@ -203,5 +205,60 @@ class CourtController extends Controller
         $res = CourtType::where('status', 1)->get();
 
         return new CourtTypeCollection($res);
+    }
+
+    public function courtCloseDay(Court $court, Request $request) {
+
+        if (CourtCloseDay::where('court_id', $court->id)->where('close_at', $request['closeAt'])->where("time_close_at", $request["timeCloseAt"])->where("time_close_until", $request["timeCloseUntil"])->count() > 0) {
+            return response()->json([
+                "status" => false,
+                "message" => "Data yang sama telah diproses"
+            ]);
+        }
+
+        if (auth('sanctum')->check()) {
+            $userAuth = auth('sanctum')->user();
+            if ($userAuth->role_id != 2 && $userAuth->role_id != 4) { //pemilik lapangan / admin
+                return response()->json([
+                    "status" => 0,
+                    "message" => "Gagal memasukkan data. Anda bukan admin / pemilik lapangan"
+                ]);
+            }
+            else if ($court->owner->id != $userAuth->id) {
+                return response()->json([
+                    "status" => 0,
+                    "message" => "Gagal memasukkan data. Anda bukan pemilik lapangan"
+                ]);
+            }
+        } else {
+            return response()->json([
+                "status" => 0,
+                "message" => "Unauthenticated"
+            ]);
+        }
+
+        $res = CourtCloseDay::create([
+            "court_id" => $court->id,
+            "close_at" => $request["closeAt"],
+            "time_close_at" => $request["timeCloseAt"],
+            "time_close_until" => $request["timeCloseUntil"]
+        ]);
+
+        $blockedSchedules = DB::select("SELECT *, s.id AS schedule_id FROM schedules s LEFT JOIN court_close_days c ON c.court_id = s.court_id WHERE s.court_id = ? AND date IN (SELECT close_at FROM court_close_days WHERE court_id = ?) AND (time_start BETWEEN c.time_close_at AND c.time_close_until) AND (time_finish BETWEEN c.time_close_at AND c.time_close_until)", [$court->id, $court->id]);
+
+        foreach ($blockedSchedules as $schedule) {
+            Schedule::where("id", $schedule->id)->update([
+                "status" => 0
+            ]);
+
+            if ($schedule->transaction_id != null) {
+                SystemWarning::create([
+                    "message" => "Pemilik lapangan dengan court ID " . $court->id . " menetapkan jadwal libur pada <strong>" . $request["closeAt"] . " " . $request["timeCloseAt"] . " " . $request["timeCloseUntil"] . "</strong>, sedangkan terdapat transaksi dengan ID <strong>" . $schedule->transaction_id  . "</strong> pada hari, tanggal, dan jam bersangkutan. Mohon cek data",
+                    "status" => 1
+                ]);
+            }
+        }
+
+        return $res;
     }
 }
