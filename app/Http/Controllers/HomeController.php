@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\V1\TransactionStatusCollection;
 use App\Models\SystemWarning;
 use App\Models\Transaction;
+use App\Models\TransactionStatus;
 use Illuminate\Http\Request;
 
 class HomeController extends Controller
@@ -40,5 +42,9 @@ class HomeController extends Controller
         $systemWarning->save();
 
         return redirect()->back()->with('success', 'Berhasil hapus system warning');
+    }
+
+    public function test() {
+        return new TransactionStatusCollection(TransactionStatus::all()->loadMissing('transactions'));
     }
 }
