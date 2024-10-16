@@ -24,6 +24,11 @@ class User extends Authenticatable implements MustVerifyEmail
         'name',
         'email',
         'password',
+        'phone_number',
+        'role_id',
+        'status',
+        'login_method_id',
+        'email_verified_at'
     ];
 
     /**
@@ -52,6 +57,10 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function role() {
         return $this->belongsTo(Role::class);
+    }
+
+    public function employees() {
+        return $this->hasMany(User::class, "employed_by", "id");
     }
 
     public function venues(): BelongsToMany

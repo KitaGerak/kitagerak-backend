@@ -15,8 +15,6 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->longText('description')->nullable();
-            /* $table->string('rating'); // TODO: tipe data? isinya apa? */
-            $table->string('image_url');
             $table->unsignedBigInteger('owner_id');
             $table->unsignedBigInteger('address_id');
             $table->foreign('address_id')->references('id')->on('addresses');

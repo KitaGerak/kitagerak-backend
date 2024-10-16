@@ -16,6 +16,9 @@ class TransactionStatusResource extends JsonResource
     {
         return [
             'status' => $this->status,
+            'color' => $this->color,
+            'icon' => $this->icon,
+            'transactions' => new TransactionCollection($this->whenLoaded('transactions'))
         ];
     }
 }

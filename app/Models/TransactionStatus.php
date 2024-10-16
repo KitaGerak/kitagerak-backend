@@ -13,7 +13,7 @@ class TransactionStatus extends Model
         'id'
     ];
 
-    public function transaction() {
+    public function transactions() {
         return $this->hasMany(Transaction::class);
     }
 }

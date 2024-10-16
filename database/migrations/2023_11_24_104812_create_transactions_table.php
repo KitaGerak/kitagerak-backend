@@ -15,17 +15,15 @@ return new class extends Migration
             $table->id();
             $table->string('external_id')->nullable()->unique();
             $table->string('invoice_id')->nullable();
-            $table->unsignedBigInteger('schedule_id');
+            $table->unsignedBigInteger('court_id');
             $table->string('checkout_link')->nullable();
             $table->unsignedBigInteger('user_id');
-            // $table->unsignedBigInteger('schedule_id');
             $table->integer('amount_rp')->default(0);
             
             $table->string('reason')->nullable();
             $table->unsignedBigInteger('transaction_status_id')->default(5);
             
             $table->foreign('user_id')->references('id')->on('users');
-            // $table->foreign('schedule_id')->references('id')->on('schedules');
             $table->foreign('transaction_status_id')->references('id')->on('transaction_statuses');
             $table->timestamps();
         });

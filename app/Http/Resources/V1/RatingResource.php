@@ -2,8 +2,8 @@
 
 namespace App\Http\Resources\V1;
 
-use App\Http\Resources\RatingPhotoResource;
-use App\Http\Resources\UserResource;
+use App\Http\Resources\V1\RatingPhotoResource;
+use App\Http\Resources\V1\UserResource;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class RatingResource extends JsonResource
@@ -20,7 +20,7 @@ class RatingResource extends JsonResource
             'id' => $this->id,
             'rating' => $this->rating,
             'review' => $this->review,
-            'user' => new UserResource($this->user),
+            'user' => new UserResource($this->whenLoaded('user')),
             'court' => $this->court->name,
             'courtPhotoUrl' => isset($this->court->images[0]->url) ? $this->court->images[0]->url : "",
             'ratingPhotos' => RatingPhotoResource::collection($this->ratingPhotos),

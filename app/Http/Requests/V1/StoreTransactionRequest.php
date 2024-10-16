@@ -13,9 +13,10 @@ class StoreTransactionRequest extends FormRequest
      */
     public function authorize()
     {
-        $user = $this->user();
-
-        return $user !== null && $user->tokenCan('make_transaction');
+        // $user = $this->user();
+        // return $user != null && $user->tokenCan('make_transaction');
+        
+        return true;
     }
 
     /**
@@ -26,19 +27,7 @@ class StoreTransactionRequest extends FormRequest
     public function rules()
     {
         return [
-            'externalId' => ['required'],
-            'userId' => ['required'],
-            'scheduleId' => ['required', 'exists:schedules,id'],
+            //
         ];
     }
-
-    protected function prepareForValidation()
-    {
-        $this->merge([
-            'external_id' => $this->externalId,
-            'user_id' => $this->userId,
-            'schedule_id' => $this->scheduleId,
-        ]);
-    }
-
 }

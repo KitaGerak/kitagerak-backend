@@ -17,7 +17,7 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('court_id');
             $table->string('url');
-            $table->string('status')->default(1);
+            $table->integer('status')->default(1);
             $table->timestamps();
             $table->foreign('court_id')->references('id')->on('courts');
         });

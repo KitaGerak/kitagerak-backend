@@ -15,7 +15,7 @@ class UpdateTransactionRequest extends FormRequest
     {
         $user = $this->user();
 
-        return $user != null && $user->tokenCan('admin');
+        return $user != null && $user->tokenCan('make_transaction');
     }
 
     /**

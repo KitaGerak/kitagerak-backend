@@ -15,7 +15,7 @@ class StoreScheduleRequest extends FormRequest
     {
         $user = $this->user();
 
-        return $user !== null && $user->tokenCan('create');
+        return $user != null && $user->tokenCan('create');
     }
 
     /**
@@ -26,13 +26,13 @@ class StoreScheduleRequest extends FormRequest
     public function rules()
     {
         return [
-            'courtId' => ['required', 'exists:courts,id'],
-            'date' => ['required'],
-            'timeStart' => ['required'],
-            'timeFinish' => ['required'],
+            'courtId' => ['required'],
+            'date' => ['required', 'date'],
+            'timeStart' => ['required', 'date_format:H:i'],
+            'timeFinish' => ['required', 'date_format:H:i'],
             'interval' => ['required'],
-            'price' => ['integer'],
-            'availability' => ['required'],
+            'regularPrice' => ['required'],
+            'memberPrice' => ['required']
         ];
     }
 
@@ -40,9 +40,18 @@ class StoreScheduleRequest extends FormRequest
     {
         $this->merge([
             'court_id' => $this->courtId,
+        ]);
+        $this->merge([
             'time_start' => $this->timeStart,
+        ]);
+        $this->merge([
             'time_finish' => $this->timeFinish,
         ]);
+        $this->merge([
+            'regular_price' => $this->regularPrice,
+        ]);
+        $this->merge([
+            'member_price' => $this->memberPrice,
+        ]);
     }
-
 }

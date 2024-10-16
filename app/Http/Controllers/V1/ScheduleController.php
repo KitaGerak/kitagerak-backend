@@ -4,449 +4,174 @@ namespace App\Http\Controllers\V1;
 
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\V1\BulkStoreScheduleRequest;
 use App\Http\Requests\V1\StoreScheduleRequest;
 use App\Http\Requests\V1\UpdateScheduleRequest;
 use App\Http\Resources\V1\ScheduleResource;
-use App\Models\Court;
 use App\Models\Schedule;
-use App\Models\Transaction;
-use App\Models\User;
 use App\Models\Venue;
-use Carbon\Carbon;
-use Illuminate\Support\Arr;
+use App\Services\v1\ScheduleQuery;
 use Illuminate\Support\Facades\DB;
-use stdClass;
 
 class ScheduleController extends Controller
-{
-    private function tgl_indo($tanggal)
-    {
-        $bulan = array(
-            1 =>   'Januari',
-            'Februari',
-            'Maret',
-            'April',
-            'Mei',
-            'Juni',
-            'Juli',
-            'Agustus',
-            'September',
-            'Oktober',
-            'November',
-            'Desember'
-        );
-        $pecahkan = explode('-', $tanggal);
+{    
+    public function index(Request $request) {
+        // $courtId = $request->query('courtId');
+        
+        // $dayOfWeek = $request->query('dayOfWeek');
+        // $monthInterval = $request->query('monthInterval');
 
-        // variabel pecahkan 0 = tanggal
-        // variabel pecahkan 1 = bulan
-        // variabel pecahkan 2 = tahun
+        $filter = new ScheduleQuery();
+        $queryItems = $filter->transform($request);
 
-        return $pecahkan[2] . ' ' . $bulan[(int)$pecahkan[1]] . ' ' . $pecahkan[0];
+        // $date = $request->query('date');
+
+        $schedules = Schedule::select('*')->where('schedules.status', '<>', 0)->where('schedules.availability', '<>', 0);
+
+        if (count($queryItems) != 0) {
+            // $schedules = $schedules->leftJoin('courts', 'courts.venue_id', '=', 'venues.id')->leftJoin('court_types', 'court_types.id', '=', 'courts.court_type_id')->leftJoin('addresses', 'addresses.id', '=', 'venues.address_id');
+            $schedules = $schedules->where($queryItems)->get();   
+
+            return $schedules;
+
+        } else {
+            return response()->json([
+                "status" => false,
+                "message" => "Params?"
+            ]);
+        }
     }
 
-    public function index(Request $request)
-    {
-        $courtId = $request->query('courtId');
-        $dayOfWeek = $request->query('dayOfWeek');
-        $month = $request->query('month');
-        $intervalMonth = $request->query('intervalMonth');
-        $availability = $request->query('availability');
-        $venueId = $request->query('venueId');
-        $ownerId = $request->query('ownerId');
-        if ($dayOfWeek && $month && $courtId) {
-            if ($intervalMonth && $intervalMonth > 1) {
-                $month2 = $month + $intervalMonth;
-                $query = "MONTH(date) BETWEEN $month AND $month2";
-            } else {
-                $query = "MONTH(date) = $month";
-            }
-            if ($availability) {
-                $schedules = DB::select(DB::raw("SELECT *, DAYOFWEEK(date) AS day_of_week FROM `schedules` WHERE availability = 1 AND status = 1 AND court_id = $courtId AND $query HAVING day_of_week = $dayOfWeek ORDER BY date"));
-            } else {
-                $schedules = DB::select(DB::raw("SELECT *, DAYOFWEEK(date) AS day_of_week FROM `schedules` WHERE court_id = $courtId AND $query HAVING day_of_week = $dayOfWeek ORDER BY date"));
-            }
+    public function generateSchedules() {
+        // $date = "2024-10-13";
+        // $dayofweek = date('w', strtotime($date));
+        // return $dayofweek;
 
-            if (count($schedules) > 0) {
-                $resSchedules = [];
-                $tmpSchedule = [];
-                foreach ($schedules as $i => $schedule) {
-                    $key = $i - 1;
-                    if (($key >= 0 && $schedule->date == $schedules[$key]->date) || $i == 0) {
-                        array_push($tmpSchedule, new ScheduleResource($schedule));
-                    } else {
-                        array_push(
-                            $resSchedules,
-                            [
-                                "date" => $this->tgl_indo($schedules[$key]->date),
-                                "dayOfWeek" => $schedules[$key]->day_of_week,
-                                "schedule" => $tmpSchedule
-                            ]
-                        );
+        // Declare a date
+        $date = now();
+        $datess = [];
+        for ($i = 0; $i < 7; $i++) {
+            $date = date('Y-m-d', strtotime($date. ' + 1 day'));
+            array_push($datess, $date);
+        }
 
-                        $tmpSchedule = [];
-                        array_push($tmpSchedule, new ScheduleResource($schedule));
-                    }
-                }
+        $venues = Venue::all();
+        $res = "";
+        $timeStart = null;
+        
+        // date("Y-m-d", time() + 86400);
 
-                array_push(
-                    $resSchedules,
-                    [
-                        "date" => $this->tgl_indo($schedules[count($schedules) - 1]->date),
-                        "dayOfWeek" => $schedules[count($schedules) - 1]->day_of_week,
-                        "schedule" => $tmpSchedule
-                    ]
-                );
-                return response()->json([
-                    "data" => $resSchedules,
-                ]);
-            }
-            return response()->json([
-                "data" => []
-            ]);
-            // return ScheduleResource::collection($schedules);
-        } else if ($courtId) {
-            $sql = "SELECT *, DAYOFWEEK(date) AS day_of_week FROM `schedules` WHERE court_id = ? AND availability = 1 AND status = 1 ORDER BY date";
-            $schedules = DB::select($sql, [$courtId]);
-            // $schedules = DB::select(DB::raw("SELECT *, DAYOFWEEK(date) AS day_of_week FROM `schedules` WHERE court_id = $courtId AND availability = 1 AND status = 1 ORDER BY date"));
-            if (count($schedules) > 0) {
-                $resSchedules = [];
-                $tmpSchedule = [];
-                foreach ($schedules as $i => $schedule) {
-                    $key = $i - 1;
-                    if (($key >= 0 && $schedule->date == $schedules[$key]->date) || $i == 0) {
-                        array_push($tmpSchedule, new ScheduleResource($schedule));
-                    } else {
-                        array_push(
-                            $resSchedules,
-                            [
-                                "date" => $this->tgl_indo($schedules[$key]->date),
-                                "dayOfWeek" => $schedules[$key]->day_of_week,
-                                "schedule" => $tmpSchedule
-                            ]
-                        );
+        foreach ($venues as $venue) {
+            foreach($venue->courts as $court) {
+                $timeStart = null;
+                $timeFinish = null;
+                foreach($venue->openDays as $openDay) {
+                    if ($timeStart == null)
+                        $timeStart = $openDay->time_open;
 
-                        $tmpSchedule = [];
-                        array_push($tmpSchedule, new ScheduleResource($schedule));
-                    }
-                }
+                    do {
+                        $timestamp = strtotime($timeStart) + 60*60;
+                        $timeFinish = date('H:i', $timestamp);
 
-                array_push(
-                    $resSchedules,
-                    [
-                        "date" => $this->tgl_indo($schedules[count($schedules) - 1]->date),
-                        "dayOfWeek" => $schedules[count($schedules) - 1]->day_of_week,
-                        "schedule" => $tmpSchedule
-                    ]
-                );
-                return response()->json([
-                    "data" => $resSchedules,
-                ]);
-            }
-            return response()->json([
-                "data" => []
-            ]);
-        } else if ($venueId) {
-            $courts = Court::where('venue_id', $venueId)->get();
-            foreach ($courts as $court) {
-                $courtId = $court->id;
-                $sql = "SELECT *, DAYOFWEEK(date) AS day_of_week FROM `schedules` right join `transactions` on schedules.id = transactions.schedule_id WHERE court_id = ? AND availability = 1 AND status = 1 ORDER BY date";
-                $schedules = DB::select($sql, [$courtId]);
-
-                // $schedules = DB::select(DB::raw("SELECT *, DAYOFWEEK(date) AS day_of_week FROM `schedules` WHERE court_id = $courtId AND availability = 1 AND status = 1 ORDER BY date"));
-                if (count($schedules) > 0) {
-                    $resSchedules = [];
-                    $tmpSchedule = [];
-                    foreach ($schedules as $i => $schedule) {
-                        $key = $i - 1;
-                        if (($key >= 0 && $schedule->date == $schedules[$key]->date) || $i == 0) {
-                            // $scheduleData = new ScheduleResource($schedule);
-
-                            $scheduleData = new stdClass;
-                            $scheduleData->id = $schedule->id;
-                            $scheduleData->date = $schedule->date;
-                            $scheduleData->timeStart = $schedule->time_start;
-                            $scheduleData->timeFinish = $schedule->time_finish;
-                            $scheduleData->interval = $schedule->interval;
-                            $scheduleData->availability = $schedule->availability;
-                            $scheduleData->price = $schedule->price;
-                            $scheduleData->status = $schedule->status;
-                            $scheduleData->courtId = $schedule->court_id;
-                            $scheduleData->status = $schedule->status;
-
-
-                            $transaction = Transaction::where('schedule_id', $schedule->schedule_id)->first();
-                            $user = User::find($transaction->user_id);
-                            $scheduleData->name = $user->name;
-
-                            $court = Court::find($schedule->court_id);
-                            $scheduleData->courtName = $court->name;
-
-                            array_push($tmpSchedule, $scheduleData);
-                        } else {
-                            array_push(
-                                $resSchedules,
-                                [
-                                    "date" => $this->tgl_indo($schedules[$key]->date),
-                                    "dayOfWeek" => $schedules[$key]->day_of_week,
-                                    "schedule" => $tmpSchedule
-                                ]
-                            );
-
-                            $tmpSchedule = [];
-
-                            $scheduleData = new stdClass;
-                            $scheduleData->id = $schedule->id;
-                            $scheduleData->date = $schedule->date;
-                            $scheduleData->timeStart = $schedule->time_start;
-                            $scheduleData->timeFinish = $schedule->time_finish;
-                            $scheduleData->interval = $schedule->interval;
-                            $scheduleData->availability = $schedule->availability;
-                            $scheduleData->price = $schedule->price;
-                            $scheduleData->status = $schedule->status;
-                            $scheduleData->courtId = $schedule->court_id;
-                            $scheduleData->status = $schedule->status;
-
-                            $transaction = Transaction::where('schedule_id', $schedule->schedule_id)->first();
-                                $user = User::find($transaction->user_id);
-                                $scheduleData->name = $user->name;
-
-                                $court = Court::find($schedule->court_id);
-                                $scheduleData->courtName = $court->name;
-
-                                array_push($tmpSchedule, $scheduleData);
-                                // array_push($tmpSchedule, new ScheduleResource($schedule));
-                        }
-                    }
-
-                    array_push(
-                        $resSchedules,
-                        [
-                            "date" => $this->tgl_indo($schedules[count($schedules) - 1]->date),
-                            "dayOfWeek" => $schedules[count($schedules) - 1]->day_of_week,
-                            "schedule" => $tmpSchedule
-                        ]
-                    );
-                }
-            }
-
-            if (isset($resSchedules)) {
-                return response()->json([
-                    "data" => $resSchedules,
-                ]);
-            }
-
-            return response()->json([
-                "data" => []
-            ]);
-        } else if ($ownerId) {
-           
-            $venues = Venue::where('owner_id', $ownerId)->get();
-            $resSchedules = [];
-            $tmpSchedule = [];
-            foreach ($venues as $venue) {
-                $venueId = $venue->id;
-
-                $courts = Court::where('venue_id', $venueId)->get();
-                foreach ($courts as $court) {
-                    $courtId = $court->id;
-                    $sql = "SELECT *, DAYOFWEEK(date) AS day_of_week FROM `schedules` right join `transactions` on schedules.id = transactions.schedule_id WHERE court_id = ? AND availability = 1 AND status = 1 ORDER BY date";
-                    $schedules = DB::select($sql, [$courtId]);
-    
-                    // $schedules = DB::select(DB::raw("SELECT *, DAYOFWEEK(date) AS day_of_week FROM `schedules` WHERE court_id = $courtId AND availability = 1 AND status = 1 ORDER BY date"));
-                    if (count($schedules) > 0) {
-                       
-                        foreach ($schedules as $i => $schedule) {
-                            $key = $i - 1;
-                            if (($key >= 0 && $schedule->date == $schedules[$key]->date) || $i == 0) {
-                                // $scheduleData = new ScheduleResource($schedule);
-    
-                                $scheduleData = new stdClass;
-                                $scheduleData->id = $schedule->id;
-                                $scheduleData->date = $schedule->date;
-                                $scheduleData->timeStart = $schedule->time_start;
-                                $scheduleData->timeFinish = $schedule->time_finish;
-                                $scheduleData->interval = $schedule->interval;
-                                $scheduleData->availability = $schedule->availability;
-                                $scheduleData->price = $schedule->price;
-                                $scheduleData->status = $schedule->status;
-                                $scheduleData->courtId = $schedule->court_id;
-                                $scheduleData->status = $schedule->status;
-    
-    
-                                $transaction = Transaction::where('schedule_id', $schedule->schedule_id)->first();
-                                $user = User::find($transaction->user_id);
-                                $scheduleData->name = $user->name;
-    
-                                $court = Court::find($schedule->court_id);
-                                $scheduleData->courtName = $court->name;
-    
-                                array_push($tmpSchedule, $scheduleData);
-                            } else {
-                                array_push(
-                                    $resSchedules,
-                                    [
-                                        "date" => $this->tgl_indo($schedules[$key]->date),
-                                        "dayOfWeek" => $schedules[$key]->day_of_week,
-                                        "schedule" => $tmpSchedule
-                                    ]
-                                );
-    
-                                $tmpSchedule = [];
-    
-                                $scheduleData = new stdClass;
-                                $scheduleData->id = $schedule->id;
-                                $scheduleData->date = $schedule->date;
-                                $scheduleData->timeStart = $schedule->time_start;
-                                $scheduleData->timeFinish = $schedule->time_finish;
-                                $scheduleData->interval = $schedule->interval;
-                                $scheduleData->availability = $schedule->availability;
-                                $scheduleData->price = $schedule->price;
-                                $scheduleData->status = $schedule->status;
-                                $scheduleData->courtId = $schedule->court_id;
-                                $scheduleData->status = $schedule->status;
-    
-                                $transaction = Transaction::where('schedule_id', $schedule->schedule_id)->first();
-                                    $user = User::find($transaction->user_id);
-                                    $scheduleData->name = $user->name;
-    
-                                    $court = Court::find($schedule->court_id);
-                                    $scheduleData->courtName = $court->name;
-    
-                                    array_push($tmpSchedule, $scheduleData);
-                                    // array_push($tmpSchedule, new ScheduleResource($schedule));
+                        foreach($datess as $date) {
+                            if (date('w', strtotime($date)) + 1 == $openDay->day_of_week) {
+                                for ($i = 0; $i < 4; $i++) {
+                                    if (Schedule::where('court_id', $court->id)->where('date', $date)->where('time_start', $timeStart)->where('time_finish', $timeFinish)->where('status', 1)->count() <= 0) {
+                                        Schedule::create([
+                                            "court_id" => $court->id,
+                                            "date" => $date,
+                                            "time_start" => $timeStart,
+                                            "time_finish" => $timeFinish,
+                                            "interval" => 1,
+                                            "availability" => 1,
+                                            "regular_price" => $court->regular_price,
+                                            "member_price" => $court->member_price,
+                                            "status" => 1,
+                                        ]);
+                                    }
+                                    $date = date('Y-m-d', strtotime($date. ' + 7 day'));
+                                }
+                                break;
                             }
                         }
     
-                        array_push(
-                            $resSchedules,
-                            [
-                                "date" => $this->tgl_indo($schedules[count($schedules) - 1]->date),
-                                "dayOfWeek" => $schedules[count($schedules) - 1]->day_of_week,
-                                "schedule" => $tmpSchedule
-                            ]
-                        );
+                        $timeStart = $timeFinish;
                     }
+                    while (strtotime($timeFinish) < strtotime($openDay->time_close));
+
+                    $timeStart = null;
+                    $timeFinish = null;
+
+                    // $res .= " | " . $openDay->day_of_week . "->" . $openDay->time_open . "-" . $openDay->time_close;
                 }
             }
-
-            if (isset($resSchedules)) {
-                return response()->json([
-                    "data" => $resSchedules,
-                ]);
-            }
-
-            return response()->json([
-                "data" => []
-            ]);
         }
-
-        return response()->json([
-            'status' => false,
-            'message' => "Day of week, month, and court id parameters required",
-            'data' => null,
-        ], 422);
+        // return $res;
     }
+
+    // public function generateSchedules()
+    // {
+    //     $carbonTodayDate = Carbon::now()->timezone("Asia/Jakarta");
+    //     $dateStart = $carbonTodayDate;
+    //     $dateEnd = $carbonTodayDate->copy()->addDays(1);
+    //     $venues = Venue::all();
+    //     // $venues = Venue::where('status', 1); // gak perlu dilakukan karena venue yang tutup-pun masi aman. Meski schedule-nya ter generate, nanti nggak bisa dipesan juga koq ujung2nya...
+
+    //     for ($currentDate = $dateStart->copy(); $currentDate <= $dateEnd; $currentDate->addDay()) {
+    //         foreach ($venues as $venue) {
+    //             $timeStart = Carbon::parse($venue->open_hour);
+    //             $timeEnd = Carbon::parse($venue->close_hour);
+    //             for ($currentTime = $timeStart; $currentTime < $timeEnd; $currentTime->addHours($venue->interval)) {
+    //                 foreach ($venue->courts as $court) {
+    //                     $existingSchedule = Schedule::where('court_id', $court->id)->where('date', $currentDate->format('Y-m-d'))->where('time_start', $currentTime->format('H:i:s'))->first();
+    //                     // dd($currentTime->addHours($venue->interval)->toTimeString());
+    //                     // dd(!isset($existingSchedule));
+    //                     if (!isset($existingSchedule)) {
+    //                         // dd($existingSchedule);
+    //                         $newSchedule = new Schedule();
+    //                         $newSchedule->court_id = $court->id;
+    //                         $newSchedule->date = $currentDate;
+    //                         $newSchedule->time_start = $currentTime->toTimeString();
+    //                         $newSchedule->time_finish = $currentTime->copy()->addHours($venue->interval)->toTimeString();
+    //                         // $newSchedule->interval = $venue->interval;
+    //                         $newSchedule->interval = 1;
+    //                         $newSchedule->availability = 1;
+    //                         $newSchedule->member_price = $court->member_price;
+    //                         $newSchedule->regular_price = $court->regular_price;
+    //                         $newSchedule->status = 1;
+    //                         $newSchedule->save();
+    //                     }
+    //                 }
+    //                 // $allTime[] = $currentTime->format('H:i:s');
+    //             }
+
+    //             // dd($allTime);
+
+    //         }
+    //     }
+
+
+    //     // $timeStart = $request->timeStart;
+    //     // $timeEnd = $request->timeEnd;
+
+    //     // $courtId = $request->courtId;
+    //     // $interval = $request->interval;
+    //     // $price = $request->price;
+
+
+    // }
 
     public function store(StoreScheduleRequest $request)
     {
         return new ScheduleResource(Schedule::create($request->all()));
     }
 
-    public function bulkStore(BulkStoreScheduleRequest $request)
-    {
-        $bulk = collect($request->all())->map(function ($arr, $key) {
-            return Arr::except($arr, ['courtId', 'timeStart', 'timeFinish']);
-        });
-
-        Schedule::insert($bulk->toArray());
-    }
-
-    public function bulkStoreByDateTime(Request $request)
-    {
-        $dateStart = $request->dateStart;
-        $dateEnd = $request->dateEnd;
-        $timeStart = $request->timeStart;
-        $timeEnd = $request->timeEnd;
-
-        $courtId = $request->courtId;
-        $interval = $request->interval;
-        $price = $request->price;
-    }
-
-    public function generateSchedule()
-    {
-        $carbonTodayDate = Carbon::now()->timezone("Asia/Jakarta");
-        $dateStart = $carbonTodayDate;
-        $dateEnd = $carbonTodayDate->copy()->addDays(1);
-        $venues = Venue::all();
-
-        for ($currentDate = $dateStart->copy(); $currentDate <= $dateEnd; $currentDate->addDay()) {
-            foreach ($venues as $venue) {
-                $timeStart = Carbon::parse($venue->open_hour);
-                $timeEnd = Carbon::parse($venue->close_hour);
-                $allTime = array();
-                for ($currentTime = $timeStart; $currentTime < $timeEnd; $currentTime->addHours($venue->interval)) {
-                    foreach ($venue->courts as $court) {
-                        $existingSchedule = Schedule::where('court_id', $court->id)->where('date', $currentDate->format('Y-m-d'))->where('time_start', $currentTime->format('H:i:s'))->first();
-                        // dd($currentTime->addHours($venue->interval)->toTimeString());
-                        // dd(!isset($existingSchedule));
-                        if (!isset($existingSchedule)) {
-                            // dd($existingSchedule);
-                            $newSchedule = new Schedule();
-                            $newSchedule->court_id = $court->id;
-                            $newSchedule->date = $currentDate;
-                            $newSchedule->time_start = $currentTime->toTimeString();
-                            $newSchedule->time_finish = $currentTime->copy()->addHours($venue->interval)->toTimeString();
-                            $newSchedule->interval = $venue->interval;
-                            $newSchedule->availability = 1;
-                            $newSchedule->price = $court->price;
-                            $newSchedule->status = 1;
-                            $newSchedule->save();
-                        }
-                    }
-                    // $allTime[] = $currentTime->format('H:i:s');
-                }
-
-                // dd($allTime);
-
-            }
-        }
-
-
-        // $timeStart = $request->timeStart;
-        // $timeEnd = $request->timeEnd;
-
-        // $courtId = $request->courtId;
-        // $interval = $request->interval;
-        // $price = $request->price;
-
-
-    }
-
-    public function update(Schedule $schedule, UpdateScheduleRequest $request)
-    {
+    public function update(UpdateScheduleRequest $request, Schedule $schedule) {
         $schedule->update($request->all());
     }
 
     public function destroy(Schedule $schedule)
     {
-        $schedule->status = "0";
+        $schedule->status = 0;
         $schedule->save();
-
-        return response()->json([
-            "message" => ["Berhasil hapus jadwal!"]
-        ]);
-    }
-
-    public function destroyMultiple(Request $request)
-    {
-        if (isset($request->id)) {
-            foreach ($request->id as $id) {
-                Schedule::where('id', $id)->update([
-                    'status' => "0"
-                ]);
-            }
-        }
     }
 }

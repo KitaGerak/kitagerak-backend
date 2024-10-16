@@ -4,7 +4,6 @@ namespace App\Http\Controllers\V1;
 
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
-use Exception;
 use Illuminate\Support\Facades\Http;
 
 class InvoiceController extends Controller

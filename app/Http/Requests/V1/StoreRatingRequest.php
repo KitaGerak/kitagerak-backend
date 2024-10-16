@@ -15,7 +15,7 @@ class StoreRatingRequest extends FormRequest
     {
         $user = $this->user();
 
-        return $user !== null && $user->tokenCan('view');
+        return $user !== null && $user->tokenCan('make_transaction');
     }
 
     /**

@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 
 class Transaction extends Model
 {
@@ -14,16 +13,24 @@ class Transaction extends Model
         'id'
     ];
 
-    public function schedule() {
-        return $this->belongsTo(Schedule::class);
+    public function schedules() {
+        return $this->hasMany(Schedule::class);
     }
 
-    public function court():HasOneThrough {
-        return $this->hasOneThrough(Court::class, Schedule::class, 'id', 'id', 'schedule_id', 'court_id');
+    // public function schedule() {
+    //     return $this->belongsTo(Schedule::class);
+    // }
+
+    // public function court():HasOneThrough {
+    //     return $this->hasOneThrough(Court::class, Schedule::class, 'id', 'id', 'schedule_id', 'court_id');
+    // }
+
+    public function court() {
+        return $this->belongsTo(Court::class);
     }
 
-    public function transactionStatus() {
-        return $this->belongsTo(TransactionStatus::class);
+    public function status() {
+        return $this->belongsTo(TransactionStatus::class, 'transaction_status_id', 'id');
     }
     
     public function user() {

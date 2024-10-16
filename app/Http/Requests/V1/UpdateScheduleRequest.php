@@ -15,7 +15,7 @@ class UpdateScheduleRequest extends FormRequest
     {
         $user = $this->user();
 
-        return $user !== null && $user->tokenCan('update');
+        return $user != null && $user->tokenCan('create');
     }
 
     /**
@@ -27,47 +27,30 @@ class UpdateScheduleRequest extends FormRequest
     {
         if ($this->method() == 'PUT') {
             return [
-                'courtId' => ['required', 'exists:courts,id'],
-                'date' => ['required'],
-                'timeStart' => ['required'],
-                'timeFinish' => ['required'],
-                'interval' => ['required'],
-                'availability' => ['required'],
-                'price' => ['integer'],
+                'regularPrice' => ['required'],
+                'memberPrice' => ['required'],
             ];
         } else {
             return [
-                'courtId' => ['sometimes', 'required', 'exists:courts,id'],
-                'date' => ['sometimes', 'required'],
-                'timeStart' => ['sometimes', 'required'],
-                'timeFinish' => ['sometimes', 'required'],
-                'interval' => ['sometimes', 'required'],
-                'availability' => ['sometimes', 'required'],
-                'price' => ['integer'],
+                'regularPrice' => ['sometimes', 'required'],
+                'memberPrice' => ['sometimes', 'required'],
             ];
         }
-        
     }
 
     protected function prepareForValidation()
     {
-        if ($this->courtId) {
+        if ($this->regularPrice) {
             $this->merge([
-                'court_id' => $this->courtId,
+                'regular_price' => $this->regularPrice,
             ]);
         }
 
-        if ($this->timeStart) {
+        if ($this->memberPrice) {
             $this->merge([
-                'time_start' => $this->timeStart,
+                'member_price' => $this->memberPrice,
             ]);
         }
-
-        if ($this->timeFinish) {
-            $this->merge([
-                'time_finish' => $this->timeFinish,
-            ]);
-        }
+        
     }
-
 }
