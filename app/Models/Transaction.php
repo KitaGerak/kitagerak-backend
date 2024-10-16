@@ -30,7 +30,7 @@ class Transaction extends Model
     }
 
     public function status() {
-        return $this->belongsTo(TransactionStatus::class);
+        return $this->belongsTo(TransactionStatus::class, 'transaction_status_id', 'id');
     }
     
     public function user() {

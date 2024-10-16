@@ -17,6 +17,8 @@ return new class extends Migration
         Schema::create('transaction_statuses', function (Blueprint $table) {
             $table->id();
             $table->string('status');
+            $table->string('color')->nullable();
+            $table->string('icon')->nullable();
             $table->timestamps();
         });
 
@@ -46,7 +48,7 @@ return new class extends Migration
 
         DB::table('transaction_statuses')->insert(
             [
-                'status' => 'menunggu konfirmasi',
+                'status' => 'menunggu pembayaran',
             ]
         );
         DB::table('transaction_statuses')->insert(

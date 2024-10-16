@@ -100,6 +100,7 @@ Route::group(['middleware' => 'auth'], function() {
     });
 
     Route::get('/home', [HomeController::class, "index"]);
+    Route::post('/systemWarnings/{systemWarning:id}', [HomeController::class, "removeSystemWarning"]);
 });
 
 Route::get('/halamanrahasiaregisterhanyauntukadmin', [AccountController::class, "register"]);

@@ -26,12 +26,19 @@ class HomeController extends Controller
     public function index()
     {
         $transaction = Transaction::all();
-        $systemWarnings = SystemWarning::all();
+        $systemWarnings = SystemWarning::where('status', 1)->get();
         
         return view('home', [
             "title" => "Admin Dashboard",
             "transactions" => $transaction,
             "systemWarnings" => $systemWarnings,
         ]);
+    }
+
+    public function removeSystemWarning(SystemWarning $systemWarning) {
+        $systemWarning->status = 0;
+        $systemWarning->save();
+
+        return redirect()->back()->with('success', 'Berhasil hapus system warning');
     }
 }

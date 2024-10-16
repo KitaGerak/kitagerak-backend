@@ -6,6 +6,12 @@
 <div class="container">
     <h1 class="mb-4">{{ $title }}</h1>
 
+    @if (session()->has('success'))
+        <div class="alert alert-success">
+            {{ session('success') }}
+        </div>
+    @endif
+
     @if(count($systemWarnings) > 0)
     <h3>System Warning</h3>
 
@@ -15,6 +21,7 @@
             <th scope="col">#</th>
             <th scope="col">Keterangan</th>
             <th scope="col">Tanggal (Thn-bln-tgl J:M:D)</th>
+            <th scope="col">Aksi</th>
             </tr>
         </thead>
         <tbody>
@@ -23,6 +30,12 @@
                 <th scope="row">{{ $i+1 }}</th>
                 <td>{!! $warning->message !!}</td>
                 <td>{{ $warning->created_at }}</td>
+                <td>
+                    <form action="/systemWarnings/{{ $warning->id }}" method="POST">
+                        @csrf
+                        <button type="submit" class="btn btn-danger" onclick="return confirm('Apakah anda yakin ingin menghapus pesan ini? Pesan yang sudah dihapus tidak dapat dikembalikan.')"><i class="fa fa-check"></i></button>
+                    </form>
+                </td>
             </tr>
             @endforeach
         </tbody>
@@ -66,8 +79,8 @@
                     @endforeach
                     </ul>
                 </td>
-                <td>
-                    {{-- {{ $transaction->status->status }} --}}
+                <td style="color: {{ $transaction->status->color }}">
+                    {{ $transaction->status->status }}
                 </td>
                 <td>
                     <button class="btn btn-danger"><i class="fa fa-trash"></i></button>

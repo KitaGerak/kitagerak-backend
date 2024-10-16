@@ -4,7 +4,7 @@ namespace App\Http\Resources\V1;
 
 use Illuminate\Http\Resources\Json\JsonResource;
 
-class TransactionStatusResource extends JsonResource
+class CourtCloseDayResource extends JsonResource
 {
     /**
      * Transform the resource into an array.
@@ -15,9 +15,10 @@ class TransactionStatusResource extends JsonResource
     public function toArray($request)
     {
         return [
-            'status' => $this->status,
-            'color' => $this->color,
-            'icon' => $this->icon,
+            'id' => $this->id,
+            'closeAt' => $this->close_at,
+            'timeCloseAt' => $this->time_close_at,
+            'timeCloseUntil' => $this->time_close_until,
         ];
     }
 }

@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\V1\UpdateCourtRequest;
 use App\Http\Requests\V1\StoreCourtRequest;
+use App\Http\Resources\V1\CourtCloseDayResource;
 use App\Http\Resources\V1\CourtCollection;
 use App\Http\Resources\V1\CourtResource;
 use App\Http\Resources\V1\CourtTypeCollection;
@@ -237,17 +238,17 @@ class CourtController extends Controller
             ]);
         }
 
-        $res = CourtCloseDay::create([
+        $courtCloseDay = CourtCloseDay::create([
             "court_id" => $court->id,
             "close_at" => $request["closeAt"],
             "time_close_at" => $request["timeCloseAt"],
             "time_close_until" => $request["timeCloseUntil"]
         ]);
 
-        $blockedSchedules = DB::select("SELECT *, s.id AS schedule_id FROM schedules s LEFT JOIN court_close_days c ON c.court_id = s.court_id WHERE s.court_id = ? AND date IN (SELECT close_at FROM court_close_days WHERE court_id = ?) AND (time_start BETWEEN c.time_close_at AND c.time_close_until) AND (time_finish BETWEEN c.time_close_at AND c.time_close_until)", [$court->id, $court->id]);
+        $blockedSchedules = DB::select("SELECT s.transaction_id AS transaction_id, s.id AS schedule_id FROM schedules s LEFT JOIN court_close_days c ON c.court_id = s.court_id WHERE s.court_id = ? AND date IN (SELECT close_at FROM court_close_days WHERE court_id = ?) AND (time_start BETWEEN c.time_close_at AND c.time_close_until) AND (time_finish BETWEEN c.time_close_at AND c.time_close_until)", [$court->id, $court->id]);
 
         foreach ($blockedSchedules as $schedule) {
-            Schedule::where("id", $schedule->id)->update([
+            Schedule::where("id", $schedule->schedule_id)->update([
                 "status" => 0
             ]);
 
@@ -259,6 +260,6 @@ class CourtController extends Controller
             }
         }
 
-        return $res;
+        return new CourtCloseDayResource($courtCloseDay);
     }
 }
