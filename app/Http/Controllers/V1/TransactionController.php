@@ -25,39 +25,43 @@ class TransactionController extends Controller
         if (auth('sanctum')->check()){
             $userAuth = auth('sanctum')->user();
             $userId = $request->query('userId')["eq"];
-            $ownerId = $request->query('ownerId')["eq"];
-
-            if ($userAuth->role_id != 3) { //bukan admin
-                if ($userAuth->role_id == 1) { //user - penyewa lapangan
-                    if ($userId == null) {
-                        return response()->json([
-                            "status" => 0,
-                            "message" => "Must specify user id"
-                        ]);
-                    }
-        
-                    if ($userId != $userAuth->id) {
-                        return response()->json([
-                            "status" => 0,
-                            "message" => "Dilarang mengambil data user lain"
-                        ]);
-                    }
-                } else if ($userAuth->role_id == 2) { //pemilik lapangan
-                    if ($ownerId == null) {
-                        return response()->json([
-                            "status" => 0,
-                            "message" => "Must specify owner id"
-                        ]);
-                    }
-        
-                    if ($ownerId != $userAuth->id) {
-                        return response()->json([
-                            "status" => 0,
-                            "message" => "Dilarang mengambil data owner lain"
-                        ]);
-                    }
-                }
+            if (isset($request->query('ownerId')["eq"])) {
+                $ownerId = $request->query('ownerId')["eq"];
+            } else {
+                $ownerId = null;
             }
+
+            // if ($userAuth->role_id != 3) { //bukan admin
+            //     if ($userAuth->role_id == 1) { //user - penyewa lapangan
+            //         if ($userId == null) {
+            //             return response()->json([
+            //                 "status" => 0,
+            //                 "message" => "Must specify user id"
+            //             ]);
+            //         }
+        
+            //         if ($userId != $userAuth->id) {
+            //             return response()->json([
+            //                 "status" => 0,
+            //                 "message" => "Dilarang mengambil data user lain"
+            //             ]);
+            //         }
+            //     } else if ($userAuth->role_id == 2) { //pemilik lapangan
+            //         if ($ownerId == null) {
+            //             return response()->json([
+            //                 "status" => 0,
+            //                 "message" => "Must specify owner id"
+            //             ]);
+            //         }
+        
+            //         if ($ownerId != $userAuth->id) {
+            //             return response()->json([
+            //                 "status" => 0,
+            //                 "message" => "Dilarang mengambil data owner lain"
+            //             ]);
+            //         }
+            //     }
+            // }
             
             $filter = new TransactionQuery();
             $queryItems = $filter->transform($request); //[['column', 'operator', 'value']]
@@ -77,7 +81,6 @@ class TransactionController extends Controller
     }
 
     public function show(Transaction $transaction) {
-        return $transaction;
         if (auth('sanctum')->check()){
             $userAuth = auth('sanctum')->user();
 

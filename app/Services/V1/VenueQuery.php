@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 
 class VenueQuery {
     protected $safeParms = [
+        'status' => ['eq'],
         'price' => ['eq', 'gte', 'lte', 'gt', 'lt', 'in'],
         'courtSize' => ['eq', 'gte', 'lte', 'gt', 'lt'],
         'courtType' => ['eq'],
@@ -19,6 +20,7 @@ class VenueQuery {
     ];
 
     protected $columnMap = [
+        'status' => 'venues.status',
         'price' => 'courts.regular_price',
         'courtSize' => 'courts.size',
         'courtType' => 'court_types.type',

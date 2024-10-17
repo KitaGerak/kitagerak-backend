@@ -59,7 +59,7 @@ class RatingController extends Controller
             $filter = new RatingQuery();
             $queryItems = $filter->transform($request); //[['column', 'operator', 'value']]
 
-            $res = Transaction::select('ratings.*');
+            $res = Rating::select('ratings.*');
 
             if (count($queryItems) > 0) {
                 $res = $res->leftJoin('users as u1', 'u1.id', 'ratings.user_id')->leftJoin('courts as c', 'c.id', 'ratings.court_id')->leftJoin('venues as v', 'v.id', 'c.venue_id')->leftJoin('users as u2', 'u2.id', 'v.owner_id')->where($queryItems);
@@ -75,12 +75,6 @@ class RatingController extends Controller
     }
 
     public function store(StoreRatingRequest $request) {
-        $schedules = Schedule::select('id')->where('court_id', $request->courtId)->get();
-        $cleanShcedulesId = [];
-        foreach ($schedules as $schedule) {
-            array_push($cleanShcedulesId, $schedule->id);
-        }
-        
         $userId = auth('sanctum')->user()->id;
         if ($userId != $request->userId) {
             return response()->json([
@@ -89,17 +83,19 @@ class RatingController extends Controller
                 'data' => null,
             ], 422);
         }
-        $transactionCount = Transaction::where('user_id', $userId)->whereIn('id', $cleanShcedulesId)->count();
-        $ratingCount = Rating::where('user_id', $userId)->where('court_id', $request->courtId)->count();
-        if ($transactionCount <= $ratingCount) {
+        
+        $transactionCount = Rating::where('user_id', $userId)->where('transaction_id', $request['transactionId'])->count();
+
+        if ($transactionCount > 0) {
             return response()->json([
                 'status' => false,
-                'message' => "Rating <= transaction",
+                'message' => "Anda sudah pernah melakukan review untuk transaksi dan lapangan bersangkutan",
                 'data' => null,
             ], 422);
         }
 
-        $res = new RatingResource(Rating::create($request->all()));
+        $rating = new RatingResource(Rating::create($request->all()));
+        $this->uploadFile($request, $rating->id);
         
         $court = Court::where('id', $request->courtId)->first();
 
@@ -111,9 +107,7 @@ class RatingController extends Controller
             'number_of_people' => $courtNumberVote,
         ]);
 
-        $this->uploadFile($request, $res->id);
-
-        return $res;
+        return $rating;
     }
 
     private function uploadFile($request, $ratingId) {

@@ -20,7 +20,7 @@ class CourtResource extends JsonResource
             'venue' => new VenueResource($this->whenLoaded('venue')),
             'owner' => new UserResource($this->whenLoaded('owner')),
             'floorType' => $this->floor_type,
-            'courtType' => new CourtTypeResource($this->whenLoaded('courtType')),
+            'courtType' => new CourtTypeResource($this->courtType),
             'alternateType' => $this->alternate_type,
             'size' => $this->size,
             'prices' => [

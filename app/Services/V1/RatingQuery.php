@@ -8,11 +8,15 @@ class RatingQuery {
     protected $safeParms = [
         'userId' => ['eq'],
         'ownerId' => ['eq'],
+        'venueId' => ['eq'],
+        'courtId' => ['eq'],
     ];
 
     protected $columnMap = [
         'userId' => 'u1.id',
         'ownerId' => 'u2.id',
+        'venueId' => 'v.id',
+        'courtId' => 'c.id'
     ];
 
     protected $operatorMap = [

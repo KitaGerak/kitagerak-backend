@@ -4,7 +4,6 @@ namespace App\Http\Resources\V1;
 
 use App\Models\Rating;
 use Illuminate\Http\Resources\Json\JsonResource;
-use Illuminate\Support\Facades\DB;
 
 class TransactionResource extends JsonResource
 {
@@ -40,8 +39,7 @@ class TransactionResource extends JsonResource
      */
     public function toArray($request)
     {
-        // TODO
-        // $rating = Rating::where('user_id', $this->user_id)->where('court_id', $this->schedule->court->id)->where('transaction_id', $this->external_id)->count();
+        $rating = Rating::where('user_id', $this->user_id)->where('court_id', $this->court->id)->where('transaction_id', $this->external_id)->count();
         
         // $schedules = DB::select(DB::raw("SELECT *, DAYOFWEEK(date) AS day_of_week FROM `schedules` WHERE id IN (SELECT schedule_id FROM `transaction_schedule_details` WHERE transaction_id = " . $this->id . ")"));
         // $resSchedules = [];
@@ -87,8 +85,7 @@ class TransactionResource extends JsonResource
             'court' => new CourtResource($this->whenLoaded('court')),
             'reason' => $this->reason,
             'status' => new TransactionStatusResource($this->whenLoaded('status')),
-            //TODO
-            // 'isReviewed' => $rating > 0 ? true : false,
+            'isReviewed' => $rating > 0 ? true : false,
             'venueId' => $this->court->venue->id,
         ];
     }
