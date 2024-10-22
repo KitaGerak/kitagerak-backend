@@ -71,7 +71,9 @@ class AccountController extends Controller
             }
         }
         // return new UserResource($user);
-        $user['photo_url'] = str_replace("private", env("APP_URL"), $user['photo_url']);
+        if ($user['photo_url'] != null) {
+            $user['photo_url'] = str_replace("private", env("APP_URL"), $user['photo_url']);
+        }
         return response()->json([
             'data' => $user
         ]);
@@ -92,7 +94,9 @@ class AccountController extends Controller
                 $user->save();
             }
         }
-        $user['photo_url'] = str_replace("private", env("APP_URL"), $user['photo_url']);
+        if ($user['photo_url'] != null) {
+            $user['photo_url'] = str_replace("private", env("APP_URL"), $user['photo_url']);
+        }
         return response()->json([
             "data" => $user,
         ]);
@@ -202,7 +206,7 @@ class AccountController extends Controller
                     $verificationCode = VerificationCode::where('user_id', $user->id)->where('is_valid', 1)->where('verification_code', $request->code)->whereRaw("valid_until >= NOW()")->where('verification_for', 'account_activation')->get()->first();
                     if ($verificationCode != null && $verificationCode->count() > 0) {
                         VerificationCode::where('verification_code', $request->code)->update(['is_valid' => 0]);
-                        DB::statement("UPDATE `users` SET `status` = 1, `email_verified_at` = NOW() WHERE `id` = $user->id");
+                        DB::statement("UPDATE `users` SET `status` = 1, `email_verified_at` = NOW(), `last_accessing` = NOW() WHERE `id` = $user->id");
 
                         //auto login
                         $auth = User::where('email', $request->email)->where('status', 1)->first();
@@ -342,6 +346,8 @@ class AccountController extends Controller
                     'data' => null,
                 ], 422);
             }
+
+            DB::statement("UPDATE FROM users SET last_accessing = NOW() WHERE id = ?", [$auth->id]);
 
             if ($auth->role_id == 2) {
                 $success['token'] = $auth->createToken('venue_owner_token'.$auth->id, ['view', 'create', 'update', 'delete'])->plainTextToken;

@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\V1\StoreScheduleRequest;
 use App\Http\Requests\V1\UpdateScheduleRequest;
+use App\Http\Resources\V1\ScheduleCollection;
 use App\Http\Resources\V1\ScheduleResource;
 use App\Models\Schedule;
 use App\Models\Venue;
@@ -13,7 +14,31 @@ use App\Services\v1\ScheduleQuery;
 use Illuminate\Support\Facades\DB;
 
 class ScheduleController extends Controller
-{    
+{  
+    private  function tgl_indo($tanggal){
+        $bulan = array (
+            1 =>   'Januari',
+            'Februari',
+            'Maret',
+            'April',
+            'Mei',
+            'Juni',
+            'Juli',
+            'Agustus',
+            'September',
+            'Oktober',
+            'November',
+            'Desember'
+        );
+        $pecahkan = explode('-', $tanggal);
+        
+        // variabel pecahkan 0 = tanggal
+        // variabel pecahkan 1 = bulan
+        // variabel pecahkan 2 = tahun
+        
+        return $pecahkan[2] . ' ' . $bulan[ (int)$pecahkan[1] ] . ' ' . $pecahkan[0];
+    }
+
     public function index(Request $request) {
         // $courtId = $request->query('courtId');
         
@@ -26,12 +51,32 @@ class ScheduleController extends Controller
         // $date = $request->query('date');
 
         $schedules = Schedule::select('*')->where('schedules.status', '<>', 0)->where('schedules.availability', '<>', 0);
+        
+        if ($request->query('dayOfWeek') != null && $request->query('dayOfWeek')['eq'] != null) {
+            $schedules = $schedules->whereRaw("DAYOFWEEK(date) = " . $request->query('dayOfWeek')['eq']);
+        }
 
         if (count($queryItems) != 0) {
             // $schedules = $schedules->leftJoin('courts', 'courts.venue_id', '=', 'venues.id')->leftJoin('court_types', 'court_types.id', '=', 'courts.court_type_id')->leftJoin('addresses', 'addresses.id', '=', 'venues.address_id');
-            $schedules = $schedules->where($queryItems)->get();   
+            $schedules = $schedules->where($queryItems)->orderBy('schedules.date', 'asc')->orderBy('schedules.time_start', 'asc')->get();
 
-            return $schedules;
+            $schedulesRes = [];
+            $co = -1;
+            foreach ($schedules as $i=>$schedule) {
+                if ($i > 0 && $schedule->date == $schedules[$i-1]->date) {
+                    array_push($schedulesRes[$co]["details"], new ScheduleResource($schedule));
+                } else {
+                    $co++;
+                    array_push($schedulesRes, [
+                        "date" => $this->tgl_indo($schedule->date),
+                        "details" => [
+                            new ScheduleResource($schedule),
+                        ]
+                    ]);
+                }
+            }
+
+            return response()->json(["data" => $schedulesRes]);
 
         } else {
             return response()->json([

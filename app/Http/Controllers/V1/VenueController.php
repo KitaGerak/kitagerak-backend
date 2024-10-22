@@ -70,7 +70,7 @@ class VenueController extends Controller
     public function show(Venue $venue, Request $request) {
         $v = $venue;
         if ($request->query('courts') != null && $request->query('courts') == 'included') {
-            $v = $v->loadMissing('courts');
+            $v = $v->loadMissing('courts')->loadMissing('courts.images')->loadMissing('courts.ratings')->loadMissing('courts.ratings.user');
         }
 
         if ($request->query('owner') != null && $request->query('owner') == 'included') {

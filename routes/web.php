@@ -49,7 +49,8 @@ Route::get("/images/{sector}/{id}/{fileName}", function($sector, $id, $fileName)
 });
 
 Route::get('/', function () {
-    return view('layouts.light');
+    // return view('layouts.light');
+    return "This is laravel API";
 });
 
 Route::get('/verified', function () {
