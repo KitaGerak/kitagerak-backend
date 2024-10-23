@@ -347,7 +347,7 @@ class AccountController extends Controller
                 ], 422);
             }
 
-            DB::statement("UPDATE FROM users SET last_accessing = NOW() WHERE id = ?", [$auth->id]);
+            DB::statement("UPDATE users SET last_accessing = NOW() WHERE id = ?", [$auth->id]);
 
             if ($auth->role_id == 2) {
                 $success['token'] = $auth->createToken('venue_owner_token'.$auth->id, ['view', 'create', 'update', 'delete'])->plainTextToken;
