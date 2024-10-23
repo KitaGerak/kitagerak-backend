@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\V1\BalanceWithdrawalController;
 use App\Http\Controllers\V1\AccountController;
 use App\Http\Controllers\V1\CourtController;
 use App\Http\Controllers\V1\InvoiceController;
@@ -88,6 +89,8 @@ Route::group(['prefix' => 'v1'], function() {
         });
 
         Route::get('/users/{ownerId}/employees', [AccountController::class, "getEmployees"]);
+
+        Route::get('/balanceDetails', [BalanceWithdrawalController::class, 'index']);
 
     });
 
