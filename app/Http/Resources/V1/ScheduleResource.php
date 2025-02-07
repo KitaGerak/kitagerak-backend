@@ -59,6 +59,7 @@ class ScheduleResource extends JsonResource
         return [
             'id' => $this->id,
             'date' => $this->tgl_indo($this->date),
+            // 'dayOfWeek' => $this->day_of_week,
             'timeStart' => $this->time_start,
             'timeFinish' => $this->time_finish,
             'interval' => $this->interval,

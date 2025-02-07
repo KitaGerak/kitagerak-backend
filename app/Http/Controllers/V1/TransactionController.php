@@ -154,28 +154,28 @@ class TransactionController extends Controller
     }
 
     public function checkSchedules(Request $request) {
-        // $dayOfWeeks = "";
         $timeStart = "";
         $timeFinish = "";
         $res = [];
 
         if ($request->startDate != null && $request->monthInterval != null && $request->schedules != null) {
+            
+            // Cek apakah start date yang dipilih adalah sebelum hari ini
             $today = date("Y-m-d");
             if ($request->startDate < $today) {
                 return response()->json([
                     "status" => false,
                     "message" => "Start date tidak boleh sebelum hari ini",
-                ]);
+                ], 500);
             }
 
-            //TODO Check jika court tutup / tidak -->SUDAH DILAKUKAN di courtclosedays
+            // Cek terlebih dahulu apakah court yang dimaksud menetapkan jadwal tutup pada hari/tanggal yang bersangkutan.
+            //TODO::create function checkCourtCloseDays
+
+            // Cek terlebih dahulu apakah ada schedule yang sudah diserobot orang lain (sudah tidak available)
+            // TODO::create function checkUnavailableSchedule
 
             foreach ($request->schedules as $i=>$schedule) {
-                // if ($i != count($request->schedules) - 1) {
-                //     $dayOfWeeks .= "'" . $schedule['dayOfWeek'] . "'" . ",";
-                // } else {
-                //     $dayOfWeeks .= "'" . $schedule['dayOfWeek'] . "'";
-                // }
                 $timeStart = "";
                 $timeFinish = "";
                 foreach($schedule['times'] as $time) {
@@ -198,8 +198,6 @@ class TransactionController extends Controller
                     $timeFinish = substr_replace($timeFinish, '', -2);
                 }
 
-                // $res = DB::Select("SELECT *, DAYOFWEEK(date) AS dayOfWeek FROM `schedules` WHERE date > NOW() AND date >= ? AND court_id = ? AND date <= DATE_ADD(?, interval ? MONTH) AND availability = 1 AND status = 1 AND time_start IN ($timeStart) AND time_finish IN ($timeFinish) HAVING dayOfWeek IN ($dayOfWeeks) ORDER BY date, time_start", [$request->startDate, $request->courtId, $request->startDate, $request->monthInterval]);
-
                 $rs = DB::Select("SELECT *, DAYOFWEEK(date) AS dayOfWeek FROM `schedules` WHERE date > NOW() AND date >= ? AND court_id = ? AND date <= DATE_ADD(?, interval ? MONTH) AND availability = 1 AND status = 1 AND time_start IN ($timeStart) AND time_finish IN ($timeFinish) HAVING dayOfWeek = ? ORDER BY date, time_start", [$request->startDate, $request->courtId, $request->startDate, $request->monthInterval, $schedule['dayOfWeek']]);
                 
                 foreach ($rs as $r) {
@@ -208,6 +206,13 @@ class TransactionController extends Controller
             }
             
         } else if ($request->scheduleIds != null) {
+            /* Check schedule untuk yang mau booking secara reguler. Parameter yang dikirimkan hanya ID berapa saja yang ingin di-book
+            Eg: 
+            {
+                "scheduleIds": [1, 111, 112]
+            }
+            */
+
             $scheduleIds = "";
             foreach ($request->scheduleIds as $i=>$scheduleId) {
                 if ($i != count($request->scheduleIds) - 1) {
@@ -217,6 +222,13 @@ class TransactionController extends Controller
                 }
             }
 
+            // Cek terlebih dahulu apakah court yang dimaksud menetapkan jadwal tutup pada hari/tanggal yang bersangkutan.
+            //TODO::create function checkCourtCloseDays
+
+            // Cek terlebih dahulu apakah ada schedule yang sudah diserobot orang lain (sudah tidak available)
+            // TODO::create function checkUnavailableSchedule
+
+            // Mengembalikan hasil "schedules" (hari tanggal) agar user bisa memastikan apakah pesanannya sudah betul/masih salah.
             $res = DB::Select("SELECT *, DAYOFWEEK(date) AS dayOfWeek FROM `schedules` WHERE id IN ($scheduleIds)");
         } else {
             return response()->json([
@@ -254,9 +266,9 @@ class TransactionController extends Controller
         }
 
         $unavailableSchedule = DB::Select("SELECT COUNT(*) AS `countUnavailableSchedule` FROM `schedules` WHERE id IN ($scheduleIds) AND (availability = 0 OR status = 0)");
-        $courtIdCount = DB::Select("SELECT COUNT(DISTINCT(court_id)) AS courtIdCount FROM `schedules` WHERE id IN ($scheduleIds)"); //Cara untuk cek apakah user pesan dari court yang sama / tidak. Jika tidak, TOLAK
+        //Cara untuk cek apakah user pesan dari court yang sama / tidak. Jika tidak, TOLAK
+        $courtIdCount = DB::Select("SELECT COUNT(DISTINCT(court_id)) AS courtIdCount FROM `schedules` WHERE id IN ($scheduleIds)"); 
 
-       
 
         if ($unavailableSchedule[0]->countUnavailableSchedule == 0 && $courtIdCount[0]->courtIdCount == 1) {
             $type = "";
@@ -298,11 +310,6 @@ class TransactionController extends Controller
                 ], 500);
             }
 
-            // NO USE
-            // $schedule = Schedule::where('id', $request->scheduleIds[0]);
-            // DB::statement("UPDATE `transactions` SET checkout_link = '" . $xenditResponse->collect()['invoice_url'] . "', invoice_id = '" . $xenditResponse->collect()['id'] . "', amount_rp = (SELECT SUM($query) AS amount_rp FROM `schedules` WHERE transaction_id = $insertedTransaction->id) + (SELECT amount_rp FROM `fees` WHERE name = 'app_admin'), schedule_id = " . $request->scheduleIds[0] . " WHERE id = $insertedTransaction->id");
-            //NO USE
-
             DB::statement("UPDATE `transactions` SET checkout_link = '" . $xenditResponse->collect()['invoice_url'] . "', invoice_id = '" . $xenditResponse->collect()['id'] . "', amount_rp = (SELECT SUM($query) AS amount_rp FROM `schedules` WHERE transaction_id = $insertedTransaction->id) + (SELECT amount_rp FROM `fees` WHERE name = 'app_admin') WHERE id = $insertedTransaction->id");
 
             $res = Transaction::where('id', $insertedTransaction->id)->first();
@@ -314,16 +321,6 @@ class TransactionController extends Controller
             ], 422);
         }
     }
-
-    // store: replaced with new method
-
-    // getAvailMemberSchedules: removed
-
-    // getUnAvailMemberSchedules: removed
-
-    // tgl indo: removed because unused
-
-    //bulk store: removed
 
     private function checkUserSanctum($currentUserId) {
         if (auth('sanctum')->check()) {

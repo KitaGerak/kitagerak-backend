@@ -6,11 +6,11 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\V1\StoreScheduleRequest;
 use App\Http\Requests\V1\UpdateScheduleRequest;
-use App\Http\Resources\V1\ScheduleCollection;
 use App\Http\Resources\V1\ScheduleResource;
 use App\Models\Schedule;
 use App\Models\Venue;
 use App\Services\v1\ScheduleQuery;
+use Exception;
 use Illuminate\Support\Facades\DB;
 
 class ScheduleController extends Controller
@@ -50,29 +50,97 @@ class ScheduleController extends Controller
 
         // $date = $request->query('date');
 
-        $schedules = Schedule::select('*')->where('schedules.status', '<>', 0)->where('schedules.availability', '<>', 0);
+        $schedules = Schedule::selectRaw('schedules.*, DAYOFWEEK(schedules.date) AS day_of_week');
         
         if ($request->query('dayOfWeek') != null && $request->query('dayOfWeek')['eq'] != null) {
             $schedules = $schedules->whereRaw("DAYOFWEEK(date) = " . $request->query('dayOfWeek')['eq']);
         }
 
         if (count($queryItems) != 0) {
-            // $schedules = $schedules->leftJoin('courts', 'courts.venue_id', '=', 'venues.id')->leftJoin('court_types', 'court_types.id', '=', 'courts.court_type_id')->leftJoin('addresses', 'addresses.id', '=', 'venues.address_id');
-            $schedules = $schedules->where($queryItems)->orderBy('schedules.date', 'asc')->orderBy('schedules.time_start', 'asc')->get();
+            $schedules = $schedules->where($queryItems)->orderBy('schedules.date', 'asc')->orderBy('schedules.time_start', 'asc');
 
             $schedulesRes = [];
-            $co = -1;
-            foreach ($schedules as $i=>$schedule) {
-                if ($i > 0 && $schedule->date == $schedules[$i-1]->date) {
-                    array_push($schedulesRes[$co]["details"], new ScheduleResource($schedule));
+
+            if ($request->query('dayOfWeek') != null && $request->query('dayOfWeek')['eq'] != null) {
+                //Untuk member
+
+                if ($request->query('date') != null && $request->query('date')['lte'] != null && $request->query('date')['gte'] != null) {
+                    //Untuk member
+                    $dayOfWeek = $request->query('dayOfWeek')['eq'];
+                    $startDate = $request->query('date')['gte'];
+                    $endDate = $request->query('date')['lte'];
+                    $courtId = $request->query('courtId')['eq'];
+                    
+                    $availScheduleTime = [];
+                    $schedules = $schedules->get();
+
+                    foreach ($schedules as $i=>$schedule) {
+                        if (!in_array($schedule->time_start, $availScheduleTime) && $schedule->status == 1 && $schedule->availability == 1) {
+                            array_push($availScheduleTime, $schedule->time_start);
+                        }
+                    }
+
+                    if (count($availScheduleTime) <= 0) {
+                        return response()->json([
+                            "status" => false,
+                            "message" => "Data tidak ditemukan"
+                        ], 500);
+                    }
+
+                    $in = "";
+                    foreach ($availScheduleTime as $key=>$val) {
+                        if ($in == "") {
+                            $in .= "'$val'";
+                        } else {
+                            $in .= ", '$val'";
+                        }
+                    }
+                    
+                    
+                    $results = DB::select("SELECT time_start AS `timeStart`, time_finish AS `timeFinish`, `interval`, MIN(availability) AS availability, MIN(status) AS `status`, MAX(member_price) AS `memberPrice`, MIN(member_discount) as `memberDiscount`, COUNT(date) AS count FROM `schedules` WHERE time_start IN ($in) AND (date BETWEEN ? AND ?) AND DAYOFWEEK(date) = ? AND court_id = ? GROUP BY `timeStart`, `timeFinish`, `interval` ORDER BY `timeStart`", [$startDate, $endDate, $dayOfWeek, $courtId]);
+                    $results = json_decode(json_encode($results), true);
+
+                    for($i = 0; $i < count($results); $i++) {
+                        $countAvail = DB::Select("SELECT count(*) AS count FROM `schedules` WHERE court_id = ? AND time_start = ? AND date IN (SELECT date FROM `schedules` WHERE DAYOFWEEK(date) = ?) AND availability = 1 AND status = 1", [$courtId, $results[$i]['timeStart'], $dayOfWeek]);
+                        $results[$i] += [
+                            "countAvail" => $countAvail[0]->count
+                        ];
+                    }
+
+                    if (count($results) > 0) {
+                        return response()->json([
+                            "data" => 
+                            $results
+                        ]);
+                    } else {
+                        return response()->json([
+                            "status" => false,
+                            "message" => "Data tidak ditemukan"
+                        ], 500);    
+                    }
+
                 } else {
-                    $co++;
-                    array_push($schedulesRes, [
-                        "date" => $this->tgl_indo($schedule->date),
-                        "details" => [
-                            new ScheduleResource($schedule),
-                        ]
-                    ]);
+                    return response()->json([
+                        "status" => false,
+                        "message" => "Invalid Parameter(s)"
+                    ], 500);
+                }
+            } else {
+                $schedules = $schedules->where([['schedules.status', '<>', 0], ['schedules.availability', '<>', 0]])->get();
+                $co = -1;
+                foreach ($schedules as $i=>$schedule) {
+                    if ($i > 0 && $schedule->date == $schedules[$i-1]->date) {
+                        array_push($schedulesRes[$co]["details"], new ScheduleResource($schedule));
+                    } else {
+                        $co++;
+                        array_push($schedulesRes, [
+                            "date" => $this->tgl_indo($schedule->date),
+                            "dayOfWeek" => $schedule->day_of_week,
+                            "details" => [
+                                new ScheduleResource($schedule),
+                            ]
+                        ]);
+                    }
                 }
             }
 
@@ -82,7 +150,7 @@ class ScheduleController extends Controller
             return response()->json([
                 "status" => false,
                 "message" => "Params?"
-            ]);
+            ], 500);
         }
     }
 
