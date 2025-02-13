@@ -9,8 +9,7 @@ use App\Http\Requests\V1\UpdateScheduleRequest;
 use App\Http\Resources\V1\ScheduleResource;
 use App\Models\Schedule;
 use App\Models\Venue;
-use App\Services\v1\ScheduleQuery;
-use Exception;
+use App\Services\V1\ScheduleQuery;
 use Illuminate\Support\Facades\DB;
 
 class ScheduleController extends Controller
@@ -57,7 +56,7 @@ class ScheduleController extends Controller
         }
 
         if (count($queryItems) != 0) {
-            $schedules = $schedules->where($queryItems)->orderBy('schedules.date', 'asc')->orderBy('schedules.time_start', 'asc');
+            $schedules = $schedules->where($queryItems)->where('schedules.date', '>=', DB::Raw("NOW()"))->orderBy('schedules.date', 'asc')->orderBy('schedules.time_start', 'asc');
 
             $schedulesRes = [];
 
@@ -126,7 +125,8 @@ class ScheduleController extends Controller
                     ], 500);
                 }
             } else {
-                $schedules = $schedules->where([['schedules.status', '<>', 0], ['schedules.availability', '<>', 0]])->get();
+                //Limit date supaya tidak melebihi 7 hari dari sekarang
+                $schedules = $schedules->where('schedules.date', '<=', DB::Raw("adddate(now(), 7)"))->where([['schedules.status', '<>', 0], ['schedules.availability', '<>', 0]])->get();
                 $co = -1;
                 foreach ($schedules as $i=>$schedule) {
                     if ($i > 0 && $schedule->date == $schedules[$i-1]->date) {
@@ -220,58 +220,6 @@ class ScheduleController extends Controller
         }
         // return $res;
     }
-
-    // public function generateSchedules()
-    // {
-    //     $carbonTodayDate = Carbon::now()->timezone("Asia/Jakarta");
-    //     $dateStart = $carbonTodayDate;
-    //     $dateEnd = $carbonTodayDate->copy()->addDays(1);
-    //     $venues = Venue::all();
-    //     // $venues = Venue::where('status', 1); // gak perlu dilakukan karena venue yang tutup-pun masi aman. Meski schedule-nya ter generate, nanti nggak bisa dipesan juga koq ujung2nya...
-
-    //     for ($currentDate = $dateStart->copy(); $currentDate <= $dateEnd; $currentDate->addDay()) {
-    //         foreach ($venues as $venue) {
-    //             $timeStart = Carbon::parse($venue->open_hour);
-    //             $timeEnd = Carbon::parse($venue->close_hour);
-    //             for ($currentTime = $timeStart; $currentTime < $timeEnd; $currentTime->addHours($venue->interval)) {
-    //                 foreach ($venue->courts as $court) {
-    //                     $existingSchedule = Schedule::where('court_id', $court->id)->where('date', $currentDate->format('Y-m-d'))->where('time_start', $currentTime->format('H:i:s'))->first();
-    //                     // dd($currentTime->addHours($venue->interval)->toTimeString());
-    //                     // dd(!isset($existingSchedule));
-    //                     if (!isset($existingSchedule)) {
-    //                         // dd($existingSchedule);
-    //                         $newSchedule = new Schedule();
-    //                         $newSchedule->court_id = $court->id;
-    //                         $newSchedule->date = $currentDate;
-    //                         $newSchedule->time_start = $currentTime->toTimeString();
-    //                         $newSchedule->time_finish = $currentTime->copy()->addHours($venue->interval)->toTimeString();
-    //                         // $newSchedule->interval = $venue->interval;
-    //                         $newSchedule->interval = 1;
-    //                         $newSchedule->availability = 1;
-    //                         $newSchedule->member_price = $court->member_price;
-    //                         $newSchedule->regular_price = $court->regular_price;
-    //                         $newSchedule->status = 1;
-    //                         $newSchedule->save();
-    //                     }
-    //                 }
-    //                 // $allTime[] = $currentTime->format('H:i:s');
-    //             }
-
-    //             // dd($allTime);
-
-    //         }
-    //     }
-
-
-    //     // $timeStart = $request->timeStart;
-    //     // $timeEnd = $request->timeEnd;
-
-    //     // $courtId = $request->courtId;
-    //     // $interval = $request->interval;
-    //     // $price = $request->price;
-
-
-    // }
 
     public function store(StoreScheduleRequest $request)
     {

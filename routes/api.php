@@ -28,6 +28,14 @@ Route::get('/test', function() { //simple test to call laravel API
 
 Route::group(['prefix' => 'v1'], function() {
 
+    Route::group(['prefix' => 'account'], function() {
+        Route::post('/generateOtpCode', [AccountController::class, "handleOtpCode"]);
+        // Route::post('/activate', [AccountController::class, "activateAccount"]);
+        
+        Route::post('/verifyCode', [AccountController::class, "verifyCode"]);
+        Route::post('/changePassword', [AccountController::class, "changePassword"]);
+    });
+
     Route::group(['middleware' => 'auth:sanctum'], function() {
 
         Route::get('/venueFilterOptions', [VenueController::class, "filterOptions"]);
@@ -105,17 +113,10 @@ Route::group(['prefix' => 'v1'], function() {
         Route::get('/{court:id}', [CourtController::class, "show"]);
     });
 
-    Route::group(['prefix' => 'account'], function() {
-        Route::post('/generateNewCode', [AccountController::class, "generateCode"]);
-        Route::post('/activate', [AccountController::class, "activateAccount"]);
-        
-        Route::post('/verifyCode', [AccountController::class, "verifyCode"]);
-        Route::post('/changePassword', [AccountController::class, "changePassword"]);
-    });
-
     Route::post('/register', [AccountController::class, "register"]);
-    Route::post('/login', [AccountController::class, "login"]);
-    Route::post('/loginWithGoogle', [AccountController::class, "loginWithGoogle"]);
+    Route::post('/login', [AccountController::class, "handleLogin"]);
+
+    Route::post('/generateGuestToken', [AccountController::class, "generateGuestToken"]);
 });
 
 Route::post('/payments/webhook/xendit', [PaymentWebhookController::class, "xenditWebhook"]);

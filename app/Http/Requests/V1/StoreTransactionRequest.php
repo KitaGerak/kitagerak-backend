@@ -13,10 +13,8 @@ class StoreTransactionRequest extends FormRequest
      */
     public function authorize()
     {
-        // $user = $this->user();
-        // return $user != null && $user->tokenCan('make_transaction');
-        
-        return true;
+        $user = $this->user();
+        return $user != null && $user->tokenCan('make_transaction');
     }
 
     /**

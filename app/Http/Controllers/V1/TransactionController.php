@@ -31,37 +31,37 @@ class TransactionController extends Controller
                 $ownerId = null;
             }
 
-            // if ($userAuth->role_id != 3) { //bukan admin
-            //     if ($userAuth->role_id == 1) { //user - penyewa lapangan
-            //         if ($userId == null) {
-            //             return response()->json([
-            //                 "status" => 0,
-            //                 "message" => "Must specify user id"
-            //             ]);
-            //         }
+            if ($userAuth->role_id != 3) { //bukan admin
+                if ($userAuth->role_id == 1) { //user - penyewa lapangan
+                    if ($userId == null) {
+                        return response()->json([
+                            "status" => 0,
+                            "message" => "Must specify user id"
+                        ]);
+                    }
         
-            //         if ($userId != $userAuth->id) {
-            //             return response()->json([
-            //                 "status" => 0,
-            //                 "message" => "Dilarang mengambil data user lain"
-            //             ]);
-            //         }
-            //     } else if ($userAuth->role_id == 2) { //pemilik lapangan
-            //         if ($ownerId == null) {
-            //             return response()->json([
-            //                 "status" => 0,
-            //                 "message" => "Must specify owner id"
-            //             ]);
-            //         }
+                    if ($userId != $userAuth->id) {
+                        return response()->json([
+                            "status" => 0,
+                            "message" => "Dilarang mengambil data user lain"
+                        ]);
+                    }
+                } else if ($userAuth->role_id == 2) { //pemilik lapangan
+                    if ($ownerId == null) {
+                        return response()->json([
+                            "status" => 0,
+                            "message" => "Must specify owner id"
+                        ]);
+                    }
         
-            //         if ($ownerId != $userAuth->id) {
-            //             return response()->json([
-            //                 "status" => 0,
-            //                 "message" => "Dilarang mengambil data owner lain"
-            //             ]);
-            //         }
-            //     }
-            // }
+                    if ($ownerId != $userAuth->id) {
+                        return response()->json([
+                            "status" => 0,
+                            "message" => "Dilarang mengambil data owner lain"
+                        ]);
+                    }
+                }
+            }
             
             $filter = new TransactionQuery();
             $queryItems = $filter->transform($request); //[['column', 'operator', 'value']]
