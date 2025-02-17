@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\V1\UpdateUserRequest;
 use App\Http\Resources\V1\UserCollection;
 use App\Http\Resources\V1\UserResource;
+use App\Mail\SendOtpCode;
 use App\Models\User;
 use App\Models\VerificationCode;
 use DateInterval;
@@ -14,6 +15,7 @@ use DateTime;
 use Exception;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 
 class AccountController extends Controller
@@ -175,11 +177,10 @@ class AccountController extends Controller
                 'verification_for' => $verificationType
             ]);
 
-            // TODO Kirim otp ke platform
-
+            // Kirim otp ke platform
             $msg = "OTP telah berhasil dikirimkan melalui ";
             if ($identifier['is'] == "email") {
-                //TODO kirim ke email
+                Mail::to($user->email)->send(new SendOtpCode($code));
                 $msg .= "email " . $identifier['data'];
             } else if ($identifier['is'] == "phone_number") {
                 //TODO kirim ke WA

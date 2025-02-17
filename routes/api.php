@@ -9,6 +9,8 @@ use App\Http\Controllers\V1\RatingController;
 use App\Http\Controllers\V1\ScheduleController;
 use App\Http\Controllers\V1\TransactionController;
 use App\Http\Controllers\V1\VenueController;
+use App\Mail\SendOtpCode;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -24,6 +26,11 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/test', function() { //simple test to call laravel API
     return "API Success!";
+});
+
+Route::get('/testEmail', function() {
+    Mail::to("christianwillson1211@gmail.com")->send(new SendOtpCode("1234"));
+    return true;
 });
 
 Route::group(['prefix' => 'v1'], function() {

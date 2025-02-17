@@ -24,34 +24,42 @@ class RatingController extends Controller
             $userId = $request->query('userId');
             $ownerId = $request->query('ownerId');
 
+            if ($userId != null) {
+                $userId = $userId['eq'];
+            }
+
+            if ($ownerId != null) {
+                $ownerId = $ownerId['eq'];
+            }
+
             if ($userAuth->role_id != 3) { //bukan admin
                 if ($userAuth->role_id == 1) { //user - penyewa lapangan
                     if ($userId == null) {
                         return response()->json([
                             "status" => 0,
                             "message" => "Must specify user id"
-                        ]);
+                        ], 422);
                     }
         
                     if ($userId != $userAuth->id) {
                         return response()->json([
                             "status" => 0,
                             "message" => "Dilarang mengambil data user lain"
-                        ]);
+                        ], 422);
                     }
                 } else if ($userAuth->role_id == 2) { //pemilik lapangan
                     if ($ownerId == null) {
                         return response()->json([
                             "status" => 0,
                             "message" => "Must specify owner id"
-                        ]);
+                        ], 422);
                     }
         
                     if ($ownerId != $userAuth->id) {
                         return response()->json([
                             "status" => 0,
                             "message" => "Dilarang mengambil data owner lain"
-                        ]);
+                        ], 422);
                     }
                 }
             }
